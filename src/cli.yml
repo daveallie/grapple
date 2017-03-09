@@ -1,10 +1,22 @@
 name: Grapple
 author: Dave Allie
-about:
+about: Fast, interruptible file downloader in Rust
 settings:
     - ColoredHelp
     - GlobalVersion
 args:
+    - uri:
+        help: URI of file to download
+        index: 1
+        required: true
+        takes_value: true
+        value_name: URI
+    - thread_count:
+        help: Set thread count, defaults to 10.
+        short: t
+        long: threads
+        takes_value: true
+        value_name: THREADS
     - verbose:
         help: Log debug information
         short: v
