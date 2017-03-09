@@ -1,0 +1,17 @@
+[package]
+name = "grapple"
+version = "0.1.0"
+authors = ["Dave Allie <dave@daveallie.com>"]
+
+[profile.release]
+lto = true
+
+[dependencies]
+clippy = {version = "*", optional = true}
+
+[dependencies.clap]
+version = "~2.20"
+features = ["yaml"]
+
+[features]
+default = []

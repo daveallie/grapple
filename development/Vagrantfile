@@ -1,0 +1,34 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+  config.vm.box = "bento/ubuntu-16.04"
+  config.vm.provision :shell, inline: setup_rust
+  config.vm.provision :shell, inline: set_prompt("GRAPPLE-BOX")
+  config.vm.provision :shell, inline: setup_grapple_dir
+  config.vm.synced_folder "..", "/grapple"
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = "1024"
+  end
+end
+
+def setup_rust
+  'curl https://sh.rustup.rs -sSf | sudo -u vagrant HOME=/home/vagrant sh -s -- --default-toolchain stable -y 2>&1'
+end
+
+def setup_grapple_dir
+  <<-SCRIPT
+su vagrant <<EOF
+mkdir -p /home/vagrant/grapple
+ln -s /grapple/src /home/vagrant/grapple
+ln -s /grapple/Cargo.toml /home/vagrant/grapple
+ln -s /grapple/Cargo.lock /home/vagrant/grapple
+ln -s /grapple/development /home/vagrant/grapple
+ln -s /grapple/pkg /home/vagrant/grapple
+EOF
+SCRIPT
+end
+
+def set_prompt(box_name)
+  %Q(echo "PS1='\\[\\033[0;32m\\]#{box_name}"'$(q=$?; [[ $q -gt 0 ]] && echo " \\[\\033[0;31m\\]$q")'" \\[\\033[0;37m\\]\\w\\[\\033[0m\\]$ '" >> /home/vagrant/.bashrc)
+end

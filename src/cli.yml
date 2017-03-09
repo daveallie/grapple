@@ -1,0 +1,11 @@
+name: Grapple
+author: Dave Allie
+about:
+settings:
+    - ColoredHelp
+    - GlobalVersion
+args:
+    - verbose:
+        help: Log debug information
+        short: v
+        long: verbose
