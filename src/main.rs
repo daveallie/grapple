@@ -17,12 +17,17 @@ extern crate crypto;
 extern crate url;
 extern crate uuid;
 extern crate rustc_serialize as serialize;
+extern crate bytes;
 
 mod auth_helper;
+mod file_helper;
+mod request_helper;
+
 use clap::App;
-use reqwest::{Client, Url};
+use reqwest::Url;
 use reqwest::header::{AcceptRanges, ContentLength, RangeUnit};
 use std::ops::Deref;
+use std::sync::{Arc, Mutex};
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -39,20 +44,8 @@ fn main() {
         Err(e) => panic!("Couldn't parse URI: {}", e),
     };
 
-    let da = auth_helper::AuthenticationRequest::new(raw_uri.to_owned(),
-                                                     url.username().to_owned(),
-                                                     url.password()
-                                                         .map(|password| password.to_owned()),
-                                                     Some("HEAD".to_owned()));
-
-    let cli = Client::new().unwrap();
-    let resp = match da.authenticate() {
-        Ok(Some(headers)) => cli.head(url).headers(headers).send().unwrap(),
-        Ok(None) => cli.head(url).send().unwrap(),
-        Err(e) => panic!(e), // this is genuine error, authentication was not attempted
-    };
-
-    let headers = resp.headers();
+    let res = request_helper::head_request(url.clone());
+    let headers = res.headers();
     if !headers.get::<AcceptRanges>().map_or(false, |range_header| {
         range_header.deref().contains(&RangeUnit::Bytes)
     }) {
@@ -65,4 +58,22 @@ fn main() {
     if content_length < 1024 {
         panic!("Content too small");
     }
+
+    let part_length = content_length / 10;
+
+    let mut sections: Vec<(u64, u64)> = vec![];
+    for section in 0..9 {
+        sections.push((section * part_length, (section + 1) * part_length - 1));
+    }
+    sections.push((9 * part_length, content_length));
+    println!("{:?}", sections);
+
+    let chunk_status_write_lock: Arc<Mutex<u8>> = Arc::new(Mutex::new(0u8));
+
+    let header_space = file_helper::create_file("test_file".to_owned(), content_length);
+    let written = file_helper::save_response("test_file".to_owned(),
+                                             request_helper::get_range_request(url, sections[0]),
+                                             header_space,
+                                             chunk_status_write_lock.clone());
+    println!("{}", written.unwrap());
 }

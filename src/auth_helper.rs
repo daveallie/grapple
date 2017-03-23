@@ -164,7 +164,7 @@ impl AuthenticationRequest {
                     None => return Ok(None),
                 }
             }
-            Err(e) => {
+            Err(_) => {
                 // debug!("Error while issuing HEAD request. Reason: {}",
                 //    e.to_string());
                 Err("Could not issue a HTTP request.")
