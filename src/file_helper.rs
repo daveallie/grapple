@@ -61,11 +61,11 @@ pub fn save_response(path: String,
 
     file.seek(SeekFrom::Start(first_byte)).unwrap();
     let mut buf = [0; CHUNK_SIZE_USIZE];
-    let mut written = prefilled;
+    let mut written = 0;
 
     while let Ok(len) = res.read(&mut buf) {
         if len == 0 {
-            return Ok(written);
+            return Ok(written + prefilled);
         }
         file.write_all(&buf[..len]).unwrap();
         let last_byte_update = (written + first_byte) / CHUNK_SIZE_U64;
@@ -74,7 +74,7 @@ pub fn save_response(path: String,
         set_written_chunks(path.clone(),
                            footer_space,
                            (last_byte_update, new_byte_update));
-        ui_helper::update_bar(child_id, written);
+        ui_helper::update_bar(child_id, written + prefilled);
     }
 
     return Ok(0u64);
@@ -83,7 +83,6 @@ pub fn save_response(path: String,
 pub fn get_first_empty_chunk(path: String, footer_space: u64, byte_range: (u64, u64)) -> u64 {
     let _guard = FLOCK.lock().expect("Failed to aquire lock, lock poisoned!");
     let mut file = OpenOptions::new().read(true).open(tmp_file_name(path)).unwrap();
-    // let (first_byte, last_byte) = byte_range;
     let first_chunk = byte_range.0 / CHUNK_SIZE_U64;
     let last_chunk = byte_range.1 / CHUNK_SIZE_U64;
     let first_byte = get_chunk_status_offset(footer_space as i64, first_chunk as i64);
@@ -159,7 +158,7 @@ fn set_written_chunks(path: String, footer_space: u64, chunk_range: (u64, u64)) 
 }
 
 fn get_chunk_status_offset(footer_space: i64, chunk: i64) -> i64 {
-    -footer_space + (chunk / 8) + 8
+    -footer_space + (chunk / 8)
 }
 
 fn tmp_file_name(path: String) -> String {

@@ -57,6 +57,16 @@ fn main() {
         process::exit(1);
     }
 
+    let thread_count = m.value_of("thread_count")
+        .map(|tc| tc.parse::<u64>().expect("Failed to parse thread count."))
+        .unwrap_or(10);
+
+    if thread_count > 20 {
+        panic!("Thread count too high, please select between 2 and 20 threads.");
+    } else if thread_count < 2 {
+        panic!("Thread count too low, please select between 2 and 20 threads.");
+    }
+
     let res = request_helper::head_request(url.clone());
     let headers = res.headers();
     if !headers.get::<AcceptRanges>().map_or(false, |range_header| {
@@ -72,23 +82,23 @@ fn main() {
         panic!("Content too small");
     }
 
-    let part_length = (content_length / 10) / file_helper::CHUNK_SIZE_U64 *
+    let part_length = (content_length / thread_count) / file_helper::CHUNK_SIZE_U64 *
                       file_helper::CHUNK_SIZE_U64;
 
     let mut sections: Vec<(u64, u64)> = vec![];
     let mut lengths: Vec<u64> = vec![];
-    for section in 0..9 {
+    for section in 0..(thread_count - 1) {
         sections.push((section * part_length, (section + 1) * part_length - 1));
         lengths.push(part_length);
     }
-    sections.push((9 * part_length, content_length));
-    lengths.push(content_length - 9 * part_length);
+    sections.push(((thread_count - 1) * part_length, content_length));
+    lengths.push(content_length - (thread_count - 1) * part_length);
 
     ui_helper::start_pbr(file_name.clone(), lengths);
 
     let footer_space = file_helper::create_file(file_name.clone(), content_length);
     let mut children = vec![];
-    for child_id in 0..sections.len() {
+    for child_id in 0..(thread_count as usize) {
         let section = sections[child_id];
         let url_clone = url.clone();
         let file_name_clone = file_name.clone();
