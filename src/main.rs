@@ -70,10 +70,14 @@ fn main() {
 
     let chunk_status_write_lock: Arc<Mutex<u8>> = Arc::new(Mutex::new(0u8));
 
-    let header_space = file_helper::create_file("test_file".to_owned(), content_length);
-    let written = file_helper::save_response("test_file".to_owned(),
-                                             request_helper::get_range_request(url, sections[0]),
-                                             header_space,
-                                             chunk_status_write_lock.clone());
-    println!("{}", written.unwrap());
+    let footer_space = file_helper::create_file("test_file".to_owned(), content_length);
+    for section in sections {
+        let range_req = request_helper::get_range_request(url.clone(), section);
+        let written = file_helper::save_response("test_file".to_owned(),
+                                                 range_req,
+                                                 footer_space,
+                                                 chunk_status_write_lock.clone());
+        println!("{}", written.unwrap());
+    }
+    file_helper::remove_footer_and_save("test_file".to_owned(), content_length);
 }
