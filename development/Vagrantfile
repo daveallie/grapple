@@ -4,6 +4,7 @@
 Vagrant.configure(2) do |config|
   config.vm.box = "bento/ubuntu-16.04"
   config.vm.provision :shell, inline: setup_rust
+  config.vm.provision :shell, inline: setup_deps
   config.vm.provision :shell, inline: set_prompt("GRAPPLE-BOX")
   config.vm.provision :shell, inline: setup_grapple_dir
   config.vm.synced_folder "..", "/grapple"
@@ -14,6 +15,15 @@ end
 
 def setup_rust
   'curl https://sh.rustup.rs -sSf | sudo -u vagrant HOME=/home/vagrant sh -s -- --default-toolchain stable -y 2>&1'
+end
+
+def setup_deps
+  <<-SCRIPT
+curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+sudo apt-get install -y build-essential nodejs yarn pkg-config
+SCRIPT
 end
 
 def setup_grapple_dir
