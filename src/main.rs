@@ -18,16 +18,21 @@ extern crate url;
 extern crate uuid;
 extern crate rustc_serialize as serialize;
 extern crate bytes;
+extern crate pbr;
+#[macro_use]
+extern crate lazy_static;
 
 mod auth_helper;
 mod file_helper;
 mod request_helper;
+mod ui_helper;
 
 use clap::App;
 use reqwest::Url;
 use reqwest::header::{AcceptRanges, ContentLength, RangeUnit};
+use std::{process, thread};
 use std::ops::Deref;
-use std::sync::{Arc, Mutex};
+use std::path::Path;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -44,6 +49,14 @@ fn main() {
         Err(e) => panic!("Couldn't parse URI: {}", e),
     };
 
+    let file_name = request_helper::get_last_url_segment(url.clone());
+
+    if Path::new(&file_name).exists() {
+        println!("{} already exists, please remove it and try again.",
+                 file_name);
+        process::exit(1);
+    }
+
     let res = request_helper::head_request(url.clone());
     let headers = res.headers();
     if !headers.get::<AcceptRanges>().map_or(false, |range_header| {
@@ -59,25 +72,52 @@ fn main() {
         panic!("Content too small");
     }
 
-    let part_length = content_length / 10;
+    let part_length = (content_length / 10) / file_helper::CHUNK_SIZE_U64 *
+                      file_helper::CHUNK_SIZE_U64;
 
     let mut sections: Vec<(u64, u64)> = vec![];
+    let mut lengths: Vec<u64> = vec![];
     for section in 0..9 {
         sections.push((section * part_length, (section + 1) * part_length - 1));
+        lengths.push(part_length);
     }
     sections.push((9 * part_length, content_length));
-    println!("{:?}", sections);
+    lengths.push(content_length - 9 * part_length);
 
-    let chunk_status_write_lock: Arc<Mutex<u8>> = Arc::new(Mutex::new(0u8));
+    ui_helper::start_pbr(file_name.clone(), lengths);
 
-    let footer_space = file_helper::create_file("test_file".to_owned(), content_length);
-    for section in sections {
-        let range_req = request_helper::get_range_request(url.clone(), section);
-        let written = file_helper::save_response("test_file".to_owned(),
-                                                 range_req,
-                                                 footer_space,
-                                                 chunk_status_write_lock.clone());
-        println!("{}", written.unwrap());
+    let footer_space = file_helper::create_file(file_name.clone(), content_length);
+    let mut children = vec![];
+    for child_id in 0..sections.len() {
+        let section = sections[child_id];
+        let url_clone = url.clone();
+        let file_name_clone = file_name.clone();
+        let child = thread::spawn(move || {
+            let start =
+                file_helper::get_first_empty_chunk(file_name_clone.clone(), footer_space, section);
+            if start <= section.1 {
+                let prefilled = start - section.0;
+                let section = (start, section.1);
+                let range_req = request_helper::get_range_request(url_clone.clone(), section);
+                let written = file_helper::save_response(file_name_clone.clone(),
+                                                         range_req,
+                                                         footer_space,
+                                                         child_id,
+                                                         prefilled)
+                    .unwrap();
+                if written > 0 {
+                    ui_helper::success_bar(child_id);
+                } else {
+                    ui_helper::fail_bar(child_id);
+                }
+            } else {
+                ui_helper::success_bar(child_id);
+            }
+        });
+        children.push(child);
     }
-    file_helper::remove_footer_and_save("test_file".to_owned(), content_length);
+    for child in children {
+        let _ = child.join();
+    }
+    file_helper::remove_footer_and_save(file_name, content_length);
 }

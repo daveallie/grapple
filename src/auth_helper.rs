@@ -3,8 +3,14 @@ use crypto::md5::Md5;
 use reqwest::Client;
 use reqwest::header::Headers;
 use serialize::base64::{ToBase64, Standard, Config, Newline};
+use std::collections::HashMap;
+use std::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
+
+lazy_static! {
+    static ref NONCES: Mutex<HashMap<String, usize>> = Mutex::new(HashMap::new());
+}
 
 pub struct AuthenticationRequest {
     method: Option<String>,
@@ -80,7 +86,6 @@ impl AuthenticationRequest {
         }
 
         let uri = self.get_request_path();
-        let nc = "00000001".to_string();
         let trimmed = header_value.trim().to_string();
         let collected = trimmed.split(",").map(|s| s.trim()).collect();
         let cnonce = Uuid::new_v4().to_string();
@@ -92,17 +97,24 @@ impl AuthenticationRequest {
         let nonce = self.find_string_value(&collected, "nonce".to_string())
             .unwrap_or("".to_string());
         let qop = self.find_string_value(&collected, "qop".to_string()).unwrap_or("".to_string());
-        let opaque = self.find_string_value(&collected, "opaque".to_string())
-            .unwrap_or("".to_string());
+
+        let mut nonces = NONCES.lock().expect("Failed to aquire NONCES lock, lock poisoned!");
+        let nc = nonces.entry(nonce.clone()).or_insert(1);
 
         let ha1 =
             self.input_to_md5_str(format!("{}:{}:{}", self.username.clone(), realm, password));
         let ha2 = self.input_to_md5_str(format!("{}:{}", method, uri));
         let response =
-            self.input_to_md5_str(format!("{}:{}:{}:{}:{}:{}", ha1, nonce, nc, cnonce, qop, ha2));
+            self.input_to_md5_str(format!("{}:{}:{:0>8}:{}:{}:{}",
+                                          ha1,
+                                          nonce,
+                                          nc,
+                                          cnonce,
+                                          qop,
+                                          ha2));
         let auth_header = format!("Digest username=\"{}\", realm=\"{}\", nonce=\"{}\", \
-                                   uri=\"{}\", qop={}, nc={}, cnonce=\"{}\", response=\"{}\", \
-                                   opaque=\"{}\"",
+                                   uri=\"{}\", qop={}, nc={:0>8}, cnonce=\"{}\", \
+                                   response=\"{}\"",
                                   self.username,
                                   realm,
                                   nonce,
@@ -110,8 +122,7 @@ impl AuthenticationRequest {
                                   qop,
                                   nc,
                                   cnonce,
-                                  response,
-                                  opaque);
+                                  response);
 
         let mut headers = Headers::new();
         headers.set_raw("Authorization", vec![auth_header.into_bytes().to_vec()]);

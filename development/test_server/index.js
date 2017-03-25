@@ -15,7 +15,7 @@ const basic = auth.basic({realm: null}, function (username, password, callback) 
 
 const app = new express();
 app.use(sendSeekable);
-const buffer = crypto.randomBytes(1024*1024*100);
+const buffer = crypto.randomBytes(1024*1000*100);
 
 app.get('*/digest(/*)?', auth.connect(digest));
 app.get('*/basic(/*)?', auth.connect(basic));

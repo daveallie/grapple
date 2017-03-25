@@ -4,14 +4,14 @@ use reqwest::header::{ByteRangeSpec, Headers, Range};
 use std::str::FromStr;
 
 pub fn head_request(uri: Url) -> Response {
-    authed_request(uri, "HEAD".to_owned())
+    authed_request(uri, "HEAD".to_string())
 }
 
 pub fn get_range_request(uri: Url, range: (u64, u64)) -> Response {
     let (from, to) = range;
     let mut headers = Headers::new();
     headers.set(Range::Bytes(vec![ByteRangeSpec::FromTo(from, to)]));
-    authed_request_with_headers(uri, "GET".to_owned(), headers)
+    authed_request_with_headers(uri, "GET".to_string(), headers)
 }
 
 pub fn authed_request(uri: Url, method: String) -> Response {
@@ -19,10 +19,10 @@ pub fn authed_request(uri: Url, method: String) -> Response {
 }
 
 pub fn authed_request_with_headers(uri: Url, method: String, headers: Headers) -> Response {
-    let da = AuthenticationRequest::new(uri.as_str().to_owned(),
-                                        uri.username().to_owned(),
+    let da = AuthenticationRequest::new(uri.as_str().to_string(),
+                                        uri.username().to_string(),
                                         uri.password()
-                                            .map(|password| password.to_owned()),
+                                            .map(|password| password.to_string()),
                                         Some(method.clone()));
 
     let req_method = Method::from_str(&method).expect("Invalid method!");
@@ -41,4 +41,8 @@ pub fn authed_request_with_headers(uri: Url, method: String, headers: Headers) -
     }
 
     res
+}
+
+pub fn get_last_url_segment(uri: Url) -> String {
+    uri.as_str().split("/").filter(|s| !s.is_empty()).last().unwrap_or("file").to_string()
 }
