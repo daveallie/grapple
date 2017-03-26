@@ -9,9 +9,6 @@
 
 #[macro_use]
 extern crate clap;
-#[macro_use]
-extern crate slog;
-extern crate slog_term;
 extern crate reqwest;
 extern crate crypto;
 extern crate url;
