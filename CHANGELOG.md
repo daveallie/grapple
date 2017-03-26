@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## [0.2.1] - 2017-03-26
 ### Fixed
 - Data missing from file if they were interrupted.
 
@@ -15,5 +17,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Moved to github version of `pbr` to fix https://github.com/a8m/pb/pull/48
 
-[Unreleased]: https://github.com/daveallie/bindrs/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/daveallie/bindrs/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/daveallie/bindrs/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/daveallie/bindrs/compare/v0.1.0...v0.2.0
