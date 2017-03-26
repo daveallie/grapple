@@ -30,8 +30,14 @@ use reqwest::header::{AcceptRanges, ContentLength, RangeUnit};
 use std::{process, thread};
 use std::ops::Deref;
 use std::path::Path;
+use std::sync::Mutex;
+use std::time::Duration;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
+lazy_static! {
+    static ref CURRENTLY_RUNNING_THREADS: Mutex<usize> = Mutex::new(0);
+}
 
 fn main() {
     let yaml = load_yaml!("cli.yml");
@@ -55,8 +61,16 @@ fn main() {
     }
 
     let thread_count = m.value_of("thread_count")
-        .map(|tc| tc.parse::<u64>().expect("Failed to parse thread count."))
+        .map(|tc| tc.parse::<usize>().expect("Failed to parse thread count."))
         .unwrap_or(10);
+    let part_count = m.value_of("part_count")
+        .map(|tc| tc.parse::<usize>().expect("Failed to parse part count."))
+        .unwrap_or(thread_count);
+    let part_count_u64 = part_count as u64;
+
+    if part_count < thread_count {
+        panic!("Part count too low, must be at least the thread count.");
+    }
 
     if thread_count > 20 {
         panic!("Thread count too high, please select between 2 and 20 threads.");
@@ -79,26 +93,37 @@ fn main() {
         panic!("Content too small");
     }
 
-    let part_length = (content_length / thread_count) / file_helper::CHUNK_SIZE_U64 *
+    let part_length = (content_length / part_count_u64) / file_helper::CHUNK_SIZE_U64 *
                       file_helper::CHUNK_SIZE_U64;
 
     let mut sections: Vec<(u64, u64)> = vec![];
     let mut lengths: Vec<u64> = vec![];
-    for section in 0..(thread_count - 1) {
+    for section in 0..(part_count_u64 - 1) {
         sections.push((section * part_length, (section + 1) * part_length - 1));
         lengths.push(part_length);
     }
-    sections.push(((thread_count - 1) * part_length, content_length));
-    lengths.push(content_length - (thread_count - 1) * part_length);
+    sections.push(((part_count_u64 - 1) * part_length, content_length));
+    lengths.push(content_length - (part_count_u64 - 1) * part_length);
 
     ui_helper::start_pbr(file_name.clone(), lengths);
 
     let footer_space = file_helper::create_file(file_name.clone(), content_length);
     let mut children = vec![];
-    for child_id in 0..(thread_count as usize) {
+    for child_id in 0..part_count {
         let section = sections[child_id];
         let url_clone = url.clone();
         let file_name_clone = file_name.clone();
+        loop {
+            {
+                let mut currently_running = CURRENTLY_RUNNING_THREADS.lock()
+                    .expect("Failed to aquire CURRENTLY_RUNNING_THREADS lock, lock poisoned!");
+                if *currently_running < thread_count {
+                    *currently_running += 1;
+                    break;
+                }
+            }
+            thread::sleep(Duration::new(1, 0));
+        }
         let child = thread::spawn(move || {
             ui_helper::setting_up_bar(child_id);
             let start =
@@ -122,6 +147,10 @@ fn main() {
             } else {
                 ui_helper::success_bar(child_id);
             }
+
+            let mut currently_running = CURRENTLY_RUNNING_THREADS.lock()
+                .expect("Failed to aquire CURRENTLY_RUNNING_THREADS lock, lock poisoned!");
+            *currently_running -= 1;
         });
         children.push(child);
     }

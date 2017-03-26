@@ -17,7 +17,9 @@ args:
         long: threads
         takes_value: true
         value_name: THREADS
-    - verbose:
-        help: Log debug information
-        short: v
-        long: verbose
+    - part_count:
+        help: Set part count, defaults to the thread count. Cannot be less than the thread count.
+        short: p
+        long: parts
+        takes_value: true
+        value_name: PARTS
