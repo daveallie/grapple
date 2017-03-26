@@ -6,7 +6,7 @@ dependencies = [
  "clap 2.20.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "clippy 0.0.118 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "pbr 1.0.0-alpha.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pbr 1.0.0-alpha.2 (git+https://github.com/a8m/pb.git?rev=e6e1fe6e4aa4e99c4594aa4943a42e91cfb41f90)",
  "reqwest 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rust-crypto 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -302,7 +302,7 @@ dependencies = [
 [[package]]
 name = "pbr"
 version = "1.0.0-alpha.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/a8m/pb.git?rev=e6e1fe6e4aa4e99c4594aa4943a42e91cfb41f90#e6e1fe6e4aa4e99c4594aa4943a42e91cfb41f90"
 dependencies = [
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.21 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -676,7 +676,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum num_cpus 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a18c392466409c50b87369414a2680c93e739aedeb498eb2bff7d7eb569744e2"
 "checksum openssl 0.9.8 (registry+https://github.com/rust-lang/crates.io-index)" = "0278368e9e80f78571a209230448afb6940789ef96cf02b1125d3a4fb4b85575"
 "checksum openssl-sys 0.9.8 (registry+https://github.com/rust-lang/crates.io-index)" = "ddd1154228cf62c05114a82e26b1a0093f90815367699ee3f3dafb62b9602111"
-"checksum pbr 1.0.0-alpha.2 (registry+https://github.com/rust-lang/crates.io-index)" = "5b2863afb7ac4372d578cafbeca1e10435e56d5d57acf63b54bc7b376c6b809b"
+"checksum pbr 1.0.0-alpha.2 (git+https://github.com/a8m/pb.git?rev=e6e1fe6e4aa4e99c4594aa4943a42e91cfb41f90)" = "<none>"
 "checksum pkg-config 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)" = "3a8b4c6b8165cd1a1cd4b9b120978131389f64bdaf456435caa41e630edba903"
 "checksum quine-mc_cluskey 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "07589615d719a60c8dd8a4622e7946465dfef20d1a428f969e3443e7386d5f45"
 "checksum quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)" = "7a6e920b65c65f10b2ae65c831a81a073a89edd28c7cce89475bff467ab4167a"

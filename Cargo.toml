@@ -13,7 +13,7 @@ rustc-serialize = "~0.3.0"
 rust-crypto = "~0.2.0"
 bytes = "~0.4.0"
 lazy_static = "~0.2.0"
-pbr = "1.0.0-alpha.2"
+pbr = { git = "https://github.com/a8m/pb.git", rev = "e6e1fe6e4aa4e99c4594aa4943a42e91cfb41f90" }
 clippy = {version = "*", optional = true}
 
 [dependencies.clap]
