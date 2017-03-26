@@ -68,12 +68,12 @@ pub fn save_response(path: String,
             return Ok(written + prefilled);
         }
         file.write_all(&buf[..len]).unwrap();
-        let last_byte_update = (written + first_byte) / CHUNK_SIZE_U64;
+        let last_working_chunk = (written + first_byte) / CHUNK_SIZE_U64;
         written += len as u64;
-        let new_byte_update = (written + first_byte) / CHUNK_SIZE_U64;
+        let current_working_chunk = (written + first_byte) / CHUNK_SIZE_U64;
         set_written_chunks(path.clone(),
                            footer_space,
-                           (last_byte_update, new_byte_update));
+                           (last_working_chunk, current_working_chunk));
         ui_helper::update_bar(child_id, written + prefilled);
     }
 
@@ -118,30 +118,32 @@ pub fn get_first_empty_chunk(path: String, footer_space: u64, byte_range: (u64, 
     chunk_num * CHUNK_SIZE_U64
 }
 
-fn set_written_chunks(path: String, footer_space: u64, chunk_range: (u64, u64)) {
-    let (first_chunk, last_chunk) = chunk_range;
-    if last_chunk <= first_chunk {
+fn set_written_chunks(path: String, footer_space: u64, working_chunk_from_to: (u64, u64)) {
+    let (last_working_chunk, current_working_chunk) = working_chunk_from_to;
+    if current_working_chunk <= last_working_chunk {
         return;
     }
+
+    let current_complete_chunk = current_working_chunk - 1;
 
     let _guard = FLOCK.lock().expect("Failed to aquire lock, lock poisoned!");
     let mut file = OpenOptions::new().write(true).read(true).open(tmp_file_name(path)).unwrap();
 
-    let first_byte = get_chunk_status_offset(footer_space as i64, first_chunk as i64);
-    let last_byte = get_chunk_status_offset(footer_space as i64, last_chunk as i64);
+    let first_byte = get_chunk_status_offset(footer_space as i64, last_working_chunk as i64);
+    let last_byte = get_chunk_status_offset(footer_space as i64, current_complete_chunk as i64);
     let mut buf = [0; 1];
     for byte_num in first_byte..(last_byte + 1) {
         file.seek(SeekFrom::End(byte_num)).unwrap();
         file.read(&mut buf).unwrap();
 
         let start_offset = if byte_num == first_byte {
-            first_chunk % 8
+            last_working_chunk % 8
         } else {
             0
         };
 
         let finish_offset = if byte_num == last_byte {
-            last_chunk % 8 + 1
+            current_complete_chunk % 8 + 1
         } else {
             8
         };

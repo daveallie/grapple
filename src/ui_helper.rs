@@ -8,7 +8,6 @@ lazy_static! {
     static ref PBRS: Mutex<Vec<ProgressBar<Pipe>>> = Mutex::new(vec![]);
 }
 
-
 pub fn start_pbr(file_name: String, lengths: Vec<u64>) {
     let mut mb = MultiBar::new();
     mb.println(&format!("Downloading: {}", file_name));
