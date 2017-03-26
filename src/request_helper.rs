@@ -44,5 +44,31 @@ pub fn authed_request_with_headers(uri: Url, method: String, headers: Headers) -
 }
 
 pub fn get_last_url_segment(uri: Url) -> String {
-    uri.as_str().split("/").filter(|s| !s.is_empty()).last().unwrap_or("file").to_string()
+    uri.as_str()
+        .split("?")
+        .next()
+        .unwrap()
+        .split("/")
+        .filter(|s| !s.is_empty())
+        .last()
+        .unwrap_or("file")
+        .to_string()
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn basic_get_last_url_segment() {
+        let url = Url::parse("http://origin.com/some/path/to/a/file.txt").unwrap();
+        assert_eq!(get_last_url_segment(url), "file.txt".to_string());
+    }
+
+    #[test]
+    fn query_string_get_last_url_segment() {
+        let url = Url::parse("http://origin.com/some/path/to/a/file.txt?a=b&b=c").unwrap();
+        assert_eq!(get_last_url_segment(url), "file.txt".to_string());
+    }
 }
