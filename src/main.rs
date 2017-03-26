@@ -100,12 +100,14 @@ fn main() {
         let url_clone = url.clone();
         let file_name_clone = file_name.clone();
         let child = thread::spawn(move || {
+            ui_helper::setting_up_bar(child_id);
             let start =
                 file_helper::get_first_empty_chunk(file_name_clone.clone(), footer_space, section);
             if start <= section.1 {
                 let prefilled = start - section.0;
                 let section = (start, section.1);
                 let range_req = request_helper::get_range_request(url_clone.clone(), section);
+                ui_helper::start_bar(child_id);
                 let written = file_helper::save_response(file_name_clone.clone(),
                                                          range_req,
                                                          footer_space,
