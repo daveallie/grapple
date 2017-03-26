@@ -1,8 +1,8 @@
-# Grapple
-
 [![Build Status](https://travis-ci.org/daveallie/grapple.svg?branch=master)](https://travis-ci.org/daveallie/grapple)
 
-Interruptible, parallel downloader written in rust.
+# Grapple
+
+Interruptible, download accelerator, with Basic and Digest Authentication support, written in Rust.
 
 ![grapple usage](docs/grapple.gif)
 
