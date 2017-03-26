@@ -29,14 +29,14 @@ Grapple 0.1.0
 Fast, interruptible file downloader in Rust
 
 USAGE:
-    grapple [FLAGS] [OPTIONS] <URI>
+    grapple [OPTIONS] <URI>
 
 FLAGS:
     -h, --help       Prints help information
     -V, --version    Prints version information
-    -v, --verbose    Log debug information
 
 OPTIONS:
+    -p, --parts <PARTS>        Set part count, defaults to the thread count. Cannot be less than the thread count.
     -t, --threads <THREADS>    Set thread count, defaults to 10.
 
 ARGS:
