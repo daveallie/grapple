@@ -25,7 +25,7 @@ cargo install --git https://github.com/daveallie/grapple
 
 ```
 $ grapple --help
-Grapple 0.1.0
+Grapple 0.2.0
 Fast, interruptible file downloader in Rust
 
 USAGE:
