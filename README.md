@@ -2,7 +2,9 @@
 
 [![Build Status](https://travis-ci.org/daveallie/grapple.svg?branch=master)](https://travis-ci.org/daveallie/grapple)
 
-## TODO
+Interruptible, parallel downloader written in rust.
+
+![grapple usage](docs/grapple.gif)
 
 ## Installation
 
@@ -21,7 +23,25 @@ cargo install --git https://github.com/daveallie/grapple
 
 ## Usage
 
-### Example command
+```
+$ grapple --help
+Grapple 0.1.0
+Fast, interruptible file downloader in Rust
+
+USAGE:
+    grapple [FLAGS] [OPTIONS] <URI>
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+    -v, --verbose    Log debug information
+
+OPTIONS:
+    -t, --threads <THREADS>    Set thread count, defaults to 10.
+
+ARGS:
+    <URI>    URI of file to download
+```
 
 ## Contributing
 
