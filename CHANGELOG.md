@@ -5,10 +5,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+- Global progress bar to see progress of download as a whole
+
+### Fixed
+- Don't mark the file as complete if some parts failed to download
+- If last part was already downloaded when resuming, request was made out of file bounds
 
 ## [0.2.1] - 2017-03-26
 ### Fixed
-- Data missing from file if they were interrupted.
+- Data missing from final file if the download was interrupted
 
 ## [0.2.0] - 2017-03-26
 ### Added
