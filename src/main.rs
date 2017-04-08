@@ -149,6 +149,7 @@ fn main() {
                     *failed = true;
                 }
             } else {
+                ui_helper::update_bar(child_id, section.1 - section.0 + 1);
                 ui_helper::success_bar(child_id);
             }
 
@@ -166,6 +167,7 @@ fn main() {
         println!("Some parts failed to download, please rerun.");
         process::exit(1);
     } else {
+        ui_helper::success_global_bar();
         file_helper::remove_footer_and_save(file_name, content_length);
     }
 }
