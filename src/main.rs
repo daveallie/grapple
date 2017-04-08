@@ -103,7 +103,7 @@ fn main() {
         sections.push((section * part_length, (section + 1) * part_length - 1));
         lengths.push(part_length);
     }
-    sections.push(((part_count_u64 - 1) * part_length, content_length));
+    sections.push(((part_count_u64 - 1) * part_length, content_length - 1));
     lengths.push(content_length - (part_count_u64 - 1) * part_length);
 
     ui_helper::start_pbr(file_name.clone(), lengths);
