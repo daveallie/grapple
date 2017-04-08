@@ -37,6 +37,7 @@ const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 lazy_static! {
     static ref CURRENTLY_RUNNING_THREADS: Mutex<usize> = Mutex::new(0);
+    static ref HAS_FAILED: Mutex<bool> = Mutex::new(false);
 }
 
 fn main() {
@@ -143,6 +144,9 @@ fn main() {
                     ui_helper::success_bar(child_id);
                 } else {
                     ui_helper::fail_bar(child_id);
+                    let mut failed = HAS_FAILED.lock()
+                        .expect("Failed to aquire HAS_FAILED lock, lock poisoned!");
+                    *failed = true;
                 }
             } else {
                 ui_helper::success_bar(child_id);
@@ -157,5 +161,11 @@ fn main() {
     for child in children {
         let _ = child.join();
     }
-    file_helper::remove_footer_and_save(file_name, content_length);
+
+    if *HAS_FAILED.lock().expect("Failed to aquire HAS_FAILED lock, lock poisoned!") {
+        println!("Some parts failed to download, please rerun.");
+        process::exit(1);
+    } else {
+        file_helper::remove_footer_and_save(file_name, content_length);
+    }
 }
