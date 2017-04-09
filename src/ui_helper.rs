@@ -65,27 +65,30 @@ fn finish_bar_with_message(act_bar: usize, message: &str) {
 }
 
 fn build_global_bar(mb: &mut MultiBar<Stdout>, size: u64) {
-    let mut pbrs = PBRS.lock().expect("Failed to aquire PBRS lock, lock poisoned!");
-    let mut pb = build_bar(mb, size);
-    pb.show_message = false;
-    pbrs.push(pb);
+    build_bar(mb, size, None);
 }
 
 fn build_child_bar(mb: &mut MultiBar<Stdout>, size: u64) {
-    let mut pbrs = PBRS.lock().expect("Failed to aquire PBRS lock, lock poisoned!");
+    build_bar(mb, size, Some("Pending... ".to_string()));
+
     let mut totals = TOTALS.lock().expect("Failed to aquire TOTALS lock, lock poisoned!");
-    let mut pb = build_bar(mb, size);
-    pb.show_message = true;
-    pb.message("Pending... ");
-    pbrs.push(pb);
     totals.push(0);
 }
 
-fn build_bar(mb: &mut MultiBar<Stdout>, size: u64) -> ProgressBar<Pipe> {
+fn build_bar(mb: &mut MultiBar<Stdout>, size: u64, message: Option<String>) {
+    let mut pbrs = PBRS.lock().expect("Failed to aquire PBRS lock, lock poisoned!");
     let mut pb = mb.create_bar(size);
     pb.set_max_refresh_rate(Some(Duration::from_millis(200)));
     pb.tick_format("▏▎▍▌▋▊▉██▉▊▋▌▍▎▏");
     pb.set_units(Units::Bytes);
+
+    if let Some(msg) = message {
+        pb.show_message = true;
+        pb.message(&msg);
+    } else {
+        pb.show_message = false;
+    }
+
     pb.tick();
-    pb
+    pbrs.push(pb);
 }
