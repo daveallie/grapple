@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+- Support for Basic/Digest auth username and password to be set via CLI options
 
 ## [0.2.2] - 2017-04-08
 ### Added

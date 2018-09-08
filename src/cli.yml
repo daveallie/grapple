@@ -23,3 +23,15 @@ args:
         long: parts
         takes_value: true
         value_name: PARTS
+    - username:
+        help: Username to use in authentication. Overrides username in URI.
+        short: u
+        long: username
+        takes_value: true
+        value_name: USERNAME
+    - password:
+        help: Password to use in authentication. Overrides password if set in URI.
+        short: P
+        long: password
+        takes_value: true
+        value_name: PASSWORD

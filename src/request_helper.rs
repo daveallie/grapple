@@ -46,7 +46,8 @@ pub fn authed_request_with_headers(uri: Url, method: &str, headers: Headers) -> 
 }
 
 pub fn get_last_url_segment_decoded(uri: &Url) -> String {
-    let last_segment = uri.as_str()
+    let last_segment = uri
+        .as_str()
         .split('?')
         .next()
         .unwrap()
@@ -59,7 +60,9 @@ pub fn get_last_url_segment_decoded(uri: &Url) -> String {
     let ls_clone = last_segment.clone();
 
     let last_segment_as_bytes = ls_clone.as_bytes();
-    let last_segment_parts  = form_urlencoded::parse(last_segment_as_bytes).into_owned().next();
+    let last_segment_parts = form_urlencoded::parse(last_segment_as_bytes)
+        .into_owned()
+        .next();
 
     if let Some((parsed_segment, _)) = last_segment_parts {
         if !parsed_segment.is_empty() {
@@ -68,6 +71,22 @@ pub fn get_last_url_segment_decoded(uri: &Url) -> String {
     }
 
     last_segment
+}
+
+pub fn override_username_password(
+    uri: &mut Url,
+    username: Option<String>,
+    password: Option<String>,
+) {
+    if let Some(user) = username {
+        uri.set_username(&user)
+            .expect("Failed to set username from param");
+    }
+
+    if let Some(pass) = password {
+        uri.set_password(Some(&pass))
+            .expect("Failed to set username from param");
+    }
 }
 
 #[cfg(test)]
@@ -90,6 +109,63 @@ mod tests {
     #[test]
     fn decode_get_last_url_segment_decoded() {
         let url = Url::parse("http://origin.com/some/path/to/a/file%20name.txt").unwrap();
-        assert_eq!(get_last_url_segment_decoded(&url), "file name.txt".to_string());
+        assert_eq!(
+            get_last_url_segment_decoded(&url),
+            "file name.txt".to_string()
+        );
+    }
+
+    #[test]
+    fn override_username_password_existing_auth() {
+        let mut url = Url::parse("http://user@origin.com/some/path/to/a/file.txt").unwrap();
+        override_username_password(&mut url, Some("newuser".to_string()), None);
+        assert_eq!(
+            url.to_string(),
+            "http://newuser@origin.com/some/path/to/a/file.txt".to_string()
+        );
+
+        override_username_password(&mut url, None, Some("password".to_string()));
+        assert_eq!(
+            url.to_string(),
+            "http://newuser:password@origin.com/some/path/to/a/file.txt".to_string()
+        );
+
+        override_username_password(
+            &mut url,
+            Some("".to_string()),
+            Some("password2".to_string()),
+        );
+        assert_eq!(
+            url.to_string(),
+            "http://:password2@origin.com/some/path/to/a/file.txt".to_string()
+        );
+    }
+
+    #[test]
+    fn override_username_password_blank_auth() {
+        let mut url = Url::parse("http://origin.com/some/path/to/a/file.txt").unwrap();
+        override_username_password(&mut url, Some("newuser".to_string()), None);
+        assert_eq!(
+            url.to_string(),
+            "http://newuser@origin.com/some/path/to/a/file.txt".to_string()
+        );
+
+        let mut url = Url::parse("http://origin.com/some/path/to/a/file.txt").unwrap();
+        override_username_password(&mut url, None, Some("password".to_string()));
+        assert_eq!(
+            url.to_string(),
+            "http://:password@origin.com/some/path/to/a/file.txt".to_string()
+        );
+
+        let mut url = Url::parse("http://origin.com/some/path/to/a/file.txt").unwrap();
+        override_username_password(
+            &mut url,
+            Some("user".to_string()),
+            Some("password".to_string()),
+        );
+        assert_eq!(
+            url.to_string(),
+            "http://user:password@origin.com/some/path/to/a/file.txt".to_string()
+        );
     }
 }

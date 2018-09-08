@@ -47,7 +47,7 @@ fn main() {
 
     #[cfg_attr(feature = "clippy", allow(option_unwrap_used))]
     let raw_uri = m.value_of("uri").unwrap(); // Unwrap is safe - required by clap
-    let url = match Url::parse(raw_uri) {
+    let mut url = match Url::parse(raw_uri) {
         Ok(uri) => uri,
         Err(e) => panic!("Couldn't parse URI: {}", e),
     };
@@ -82,6 +82,16 @@ fn main() {
         panic!("Thread count too low, please select between 2 and 20 threads.");
     }
 
+    let username = m
+        .value_of("username")
+        .map(|tc| tc.parse::<String>().expect("Failed to parse username."));
+    let password = m
+        .value_of("password")
+        .map(|tc| tc.parse::<String>().expect("Failed to parse password."));
+
+    request_helper::override_username_password(&mut url, username, password);
+
+    let url = url;
     let res = request_helper::head_request(url.clone());
     let headers = res.headers();
     let has_range_header = headers.get::<AcceptRanges>().map_or(false, |range_header| {
