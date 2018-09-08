@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Fixed
+- Reduce high CPU usage when using `--thread-bandwidth`
 
 ## [0.3.0] - 2018-09-08
 ### Added

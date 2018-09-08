@@ -24,7 +24,7 @@ SCRIPT
 end
 
 def setup_rust
-  'curl https://sh.rustup.rs -sSf | sudo -u vagrant HOME=/home/vagrant sh -s -- --default-toolchain stable -y 2>&1'
+  'curl https://sh.rustup.rs -sSf | sudo -u vagrant HOME=/home/vagrant sh -s -- --default-toolchain nightly -y 2>&1'
 end
 
 def set_prompt(box_name)

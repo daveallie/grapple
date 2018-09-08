@@ -78,8 +78,10 @@ pub fn save_response(
     file.seek(SeekFrom::Start(first_byte)).unwrap();
     let mut buf = [0; CHUNK_SIZE_USIZE];
     let mut written = 0;
-    let mut old_now = Instant::now();
+    let mut last_bw_sync = Instant::now();
+    let mut bytes_since_bw_sync: f64 = 0.0;
     let bandwidth = thread_bandwidth.map(|bw| f64::from(bw) * 1024_f64);
+    let bytes_between_bw_sync = bandwidth.unwrap_or(0.0) * 0.1;
 
     while let Ok(len) = res.read(&mut buf) {
         if len == 0 {
@@ -97,18 +99,22 @@ pub fn save_response(
         ui_helper::update_bar(child_id, written + prefilled);
 
         if let Some(bw) = bandwidth {
-            let seconds_wait = len as f64 / bw;
-            let wait_time = Duration::new(
-                seconds_wait.trunc() as u64,
-                (seconds_wait * 1_000_000_000_f64) as u32,
-            );
-            let time_passed = Instant::now() - old_now;
+            bytes_since_bw_sync += len as f64;
 
-            if wait_time.gt(&time_passed) {
-                thread::sleep(wait_time - time_passed);
+            if bytes_since_bw_sync >= bytes_between_bw_sync {
+                let seconds_wait = len as f64 / bw;
+                let wait_time = Duration::new(
+                    seconds_wait.trunc() as u64,
+                    (seconds_wait * 1_000_000_000_f64) as u32,
+                );
+                let time_passed = Instant::now() - last_bw_sync;
+
+                if wait_time.gt(&time_passed) {
+                    thread::sleep(wait_time - time_passed);
+                }
+
+                last_bw_sync = Instant::now();
             }
-
-            old_now = Instant::now();
         }
     }
 
