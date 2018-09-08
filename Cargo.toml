@@ -1,6 +1,6 @@
 [package]
 name = "grapple"
-version = "0.2.2"
+version = "0.3.0"
 authors = ["Dave Allie <dave@daveallie.com>"]
 
 [profile.release]

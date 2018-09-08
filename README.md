@@ -25,7 +25,8 @@ cargo install --git https://github.com/daveallie/grapple
 
 ```
 $ grapple --help
-Grapple 0.2.2
+Grapple 0.3.0
+Dave Allie
 Fast, interruptible file downloader in Rust
 
 USAGE:
@@ -36,8 +37,13 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-    -p, --parts <PARTS>        Set part count, defaults to the thread count. Cannot be less than the thread count.
-    -t, --threads <THREADS>    Set thread count, defaults to 10.
+    -p, --parts <PARTS>
+            Set part count, defaults to the thread count. Cannot be less than the thread count.
+
+    -P, --password <PASSWORD>                    Password to use in authentication. Overrides password if set in URI.
+        --thread-bandwidth <THREAD_BANDWIDTH>    Per thread bankdwidth in kB/s
+    -t, --threads <THREADS>                      Set thread count, defaults to 10.
+    -u, --username <USERNAME>                    Username to use in authentication. Overrides username in URI.
 
 ARGS:
     <URI>    URI of file to download
