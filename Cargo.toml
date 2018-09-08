@@ -17,7 +17,6 @@ md5 = "~0.3.8"
 bytes = "~0.4.0"
 lazy_static = "~1.1"
 pbr = { git = "https://github.com/a8m/pb.git", rev = "e0ab10be58c79d58dcdda9b79a82d28c54b3b4e3" }
-clippy = {version = "*", optional = true}
 
 [dependencies.clap]
 version = "~2.32"

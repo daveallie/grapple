@@ -1,8 +1,17 @@
 language: rust
-rust:
-  - stable
-  - beta
-  - nightly
+cache: cargo
 matrix:
-  allow_failures:
+  include:
+    - rust: stable
+    - rust: beta
     - rust: nightly
+      env: RUN_CLIPPY=true
+before_script:
+  - export PATH="$PATH:$HOME/.cargo/bin"
+  - rustup component add rustfmt-preview
+  - if [ "$RUN_CLIPPY" = "true" ]; then rustup component add clippy-preview; fi
+script:
+  - cargo fmt -- --check
+  - if [ "$RUN_CLIPPY" = "true" ]; then cargo clippy; fi
+  - cargo build --verbose
+  - cargo test --verbose
