@@ -25,12 +25,12 @@ mod file_helper;
 mod request_helper;
 mod ui_helper;
 
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use clap::App;
 use reqwest::header::{AcceptRanges, ContentLength, RangeUnit};
 use reqwest::Url;
 use std::ops::Deref;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::Duration;
 use std::{process, thread};
 
@@ -120,9 +120,9 @@ fn main() {
         let file_name_clone = file_name.clone();
         loop {
             {
-                let currently_running = CURRENTLY_RUNNING_THREADS.load(Ordering::AcqRel);
+                let currently_running = CURRENTLY_RUNNING_THREADS.load(Ordering::Acquire);
                 if currently_running < thread_count {
-                    CURRENTLY_RUNNING_THREADS.store(currently_running + 1, Ordering::AcqRel);
+                    CURRENTLY_RUNNING_THREADS.store(currently_running + 1, Ordering::Release);
                     break;
                 }
             }
@@ -130,8 +130,7 @@ fn main() {
         }
         let child = thread::spawn(move || {
             ui_helper::setting_up_bar(child_id);
-            let start =
-                file_helper::get_first_empty_chunk(&file_name_clone, footer_space, section);
+            let start = file_helper::get_first_empty_chunk(&file_name_clone, footer_space, section);
             if start <= section.1 {
                 let prefilled = start - section.0;
                 let section = (start, section.1);
@@ -148,14 +147,17 @@ fn main() {
                     ui_helper::success_bar(child_id);
                 } else {
                     ui_helper::fail_bar(child_id);
-                    HAS_FAILED.store(true, Ordering::AcqRel);
+                    HAS_FAILED.store(true, Ordering::Release);
                 }
             } else {
                 ui_helper::update_bar(child_id, section.1 - section.0 + 1);
                 ui_helper::success_bar(child_id);
             }
 
-            CURRENTLY_RUNNING_THREADS.store(CURRENTLY_RUNNING_THREADS.load(Ordering::AcqRel) - 1, Ordering::AcqRel);
+            CURRENTLY_RUNNING_THREADS.store(
+                CURRENTLY_RUNNING_THREADS.load(Ordering::Acquire) - 1,
+                Ordering::Release,
+            );
         });
         children.push(child);
     }
@@ -163,7 +165,7 @@ fn main() {
         let _ = child.join();
     }
 
-    if HAS_FAILED.load(Ordering::AcqRel) {
+    if HAS_FAILED.load(Ordering::Acquire) {
         println!("Some parts failed to download, please rerun.");
         process::exit(1);
     } else {
