@@ -1,8 +1,8 @@
-use bytes::{BufMut, BytesMut};
 use reqwest::header::{ContentRange, ContentRangeSpec};
 use reqwest::{Error, Response};
 use std::fs::{self, rename, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
+use std::mem::transmute;
 use std::ops::Deref;
 use std::sync::Mutex;
 use ui_helper;
@@ -25,11 +25,11 @@ pub fn create_file(path: &str, bytes: u64) -> u64 {
         .unwrap_or(0);
 
     if existing_file_length != footer_space_u64 + bytes {
-        let mut buf = BytesMut::with_capacity(footer_space);
-        for _ in 0..chunk_space {
-            buf.put_u8(0);
-        }
-        buf.put_u64_be(chunk_count);
+        let mut buf: Vec<u8> = vec![0_u8; chunk_space];
+
+        #[allow(unsafe_code)]
+        let chunk_count_bytes: [u8; 8] = unsafe { transmute(chunk_count.to_be()) };
+        buf.extend_from_slice(&chunk_count_bytes);
 
         let mut file = File::create(tmp_name).unwrap();
         file.set_len(footer_space_u64 + bytes).unwrap();

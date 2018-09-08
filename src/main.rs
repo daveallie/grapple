@@ -11,7 +11,6 @@
 #[macro_use]
 extern crate clap;
 extern crate base64;
-extern crate bytes;
 extern crate md5;
 extern crate pbr;
 extern crate reqwest;
