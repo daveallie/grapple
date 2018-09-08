@@ -52,7 +52,7 @@ fn main() {
         Err(e) => panic!("Couldn't parse URI: {}", e),
     };
 
-    let file_name = request_helper::get_last_url_segment(&url);
+    let file_name = request_helper::get_last_url_segment_decoded(&url);
 
     if Path::new(&file_name).exists() {
         println!(

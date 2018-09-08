@@ -2,6 +2,7 @@ use auth_helper::AuthenticationRequest;
 use reqwest::header::{ByteRangeSpec, Headers, Range};
 use reqwest::{Client, Method, Response, Url};
 use std::str::FromStr;
+use url::form_urlencoded;
 
 pub fn head_request(uri: Url) -> Response {
     authed_request(uri, "HEAD")
@@ -44,8 +45,8 @@ pub fn authed_request_with_headers(uri: Url, method: &str, headers: Headers) -> 
     res
 }
 
-pub fn get_last_url_segment(uri: &Url) -> String {
-    uri.as_str()
+pub fn get_last_url_segment_decoded(uri: &Url) -> String {
+    let last_segment = uri.as_str()
         .split('?')
         .next()
         .unwrap()
@@ -53,7 +54,20 @@ pub fn get_last_url_segment(uri: &Url) -> String {
         .filter(|s| !s.is_empty())
         .last()
         .unwrap_or("file")
-        .to_string()
+        .to_string();
+
+    let ls_clone = last_segment.clone();
+
+    let last_segment_as_bytes = ls_clone.as_bytes();
+    let last_segment_parts  = form_urlencoded::parse(last_segment_as_bytes).into_owned().next();
+
+    if let Some((parsed_segment, _)) = last_segment_parts {
+        if !parsed_segment.is_empty() {
+            return parsed_segment;
+        }
+    }
+
+    last_segment
 }
 
 #[cfg(test)]
@@ -62,14 +76,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn basic_get_last_url_segment() {
+    fn basic_get_last_url_segment_decoded() {
         let url = Url::parse("http://origin.com/some/path/to/a/file.txt").unwrap();
-        assert_eq!(get_last_url_segment(&url), "file.txt".to_string());
+        assert_eq!(get_last_url_segment_decoded(&url), "file.txt".to_string());
     }
 
     #[test]
-    fn query_string_get_last_url_segment() {
+    fn query_string_get_last_url_segment_decoded() {
         let url = Url::parse("http://origin.com/some/path/to/a/file.txt?a=b&b=c").unwrap();
-        assert_eq!(get_last_url_segment(&url), "file.txt".to_string());
+        assert_eq!(get_last_url_segment_decoded(&url), "file.txt".to_string());
+    }
+
+    #[test]
+    fn decode_get_last_url_segment_decoded() {
+        let url = Url::parse("http://origin.com/some/path/to/a/file%20name.txt").unwrap();
+        assert_eq!(get_last_url_segment_decoded(&url), "file name.txt".to_string());
     }
 }
