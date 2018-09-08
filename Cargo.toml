@@ -4,7 +4,10 @@ version = "0.2.2"
 authors = ["Dave Allie <dave@daveallie.com>"]
 
 [profile.release]
+panic = "abort"
 lto = true
+codegen-units = 1
+incremental = false
 
 [dependencies]
 reqwest = "~0.8.0"
