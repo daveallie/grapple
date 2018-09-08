@@ -1,4 +1,4 @@
-use pbr::{ProgressBar, Pipe, MultiBar, Units};
+use pbr::{MultiBar, Pipe, ProgressBar, Units};
 use std::io::Stdout;
 use std::sync::Mutex;
 use std::thread;
@@ -25,21 +25,29 @@ pub fn start_pbr(file_name: String, lengths: Vec<u64>) {
 }
 
 pub fn setting_up_bar(bar: usize) {
-    let mut pbrs = PBRS.lock().expect("Failed to aquire PBRS lock, lock poisoned!");
+    let mut pbrs = PBRS
+        .lock()
+        .expect("Failed to aquire PBRS lock, lock poisoned!");
     pbrs[bar + 1].message("Starting... ");
     pbrs[bar + 1].tick();
 }
 
 pub fn start_bar(bar: usize) {
-    let mut pbrs = PBRS.lock().expect("Failed to aquire PBRS lock, lock poisoned!");
+    let mut pbrs = PBRS
+        .lock()
+        .expect("Failed to aquire PBRS lock, lock poisoned!");
     pbrs[bar + 1].message("");
     pbrs[bar + 1].show_message = false;
     pbrs[bar + 1].tick();
 }
 
 pub fn update_bar(bar: usize, progress: u64) {
-    let mut pbrs = PBRS.lock().expect("Failed to aquire PBRS lock, lock poisoned!");
-    let mut totals = TOTALS.lock().expect("Failed to aquire TOTALS lock, lock poisoned!");
+    let mut pbrs = PBRS
+        .lock()
+        .expect("Failed to aquire PBRS lock, lock poisoned!");
+    let mut totals = TOTALS
+        .lock()
+        .expect("Failed to aquire TOTALS lock, lock poisoned!");
 
     pbrs[bar + 1].set(progress);
     totals[bar] = progress;
@@ -61,7 +69,9 @@ pub fn fail_bar(bar: usize) {
 }
 
 fn finish_bar_with_message(act_bar: usize, message: &str) {
-    PBRS.lock().expect("Failed to aquire PBRS lock, lock poisoned!")[act_bar].finish_print(message);
+    PBRS.lock()
+        .expect("Failed to aquire PBRS lock, lock poisoned!")[act_bar]
+        .finish_print(message);
 }
 
 fn build_global_bar(mb: &mut MultiBar<Stdout>, size: u64) {
@@ -71,12 +81,16 @@ fn build_global_bar(mb: &mut MultiBar<Stdout>, size: u64) {
 fn build_child_bar(mb: &mut MultiBar<Stdout>, size: u64) {
     build_bar(mb, size, Some("Pending... ".to_string()));
 
-    let mut totals = TOTALS.lock().expect("Failed to aquire TOTALS lock, lock poisoned!");
+    let mut totals = TOTALS
+        .lock()
+        .expect("Failed to aquire TOTALS lock, lock poisoned!");
     totals.push(0);
 }
 
 fn build_bar(mb: &mut MultiBar<Stdout>, size: u64, message: Option<String>) {
-    let mut pbrs = PBRS.lock().expect("Failed to aquire PBRS lock, lock poisoned!");
+    let mut pbrs = PBRS
+        .lock()
+        .expect("Failed to aquire PBRS lock, lock poisoned!");
     let mut pb = mb.create_bar(size);
     pb.set_max_refresh_rate(Some(Duration::from_millis(200)));
     pb.tick_format("▏▎▍▌▋▊▉██▉▊▋▌▍▎▏");

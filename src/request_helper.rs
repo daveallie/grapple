@@ -1,6 +1,6 @@
 use auth_helper::AuthenticationRequest;
-use reqwest::{Client, Method, Response, Url};
 use reqwest::header::{ByteRangeSpec, Headers, Range};
+use reqwest::{Client, Method, Response, Url};
 use std::str::FromStr;
 
 pub fn head_request(uri: Url) -> Response {
@@ -19,22 +19,23 @@ pub fn authed_request(uri: Url, method: String) -> Response {
 }
 
 pub fn authed_request_with_headers(uri: Url, method: String, headers: Headers) -> Response {
-    let da = AuthenticationRequest::new(uri.as_str().to_string(),
-                                        uri.username().to_string(),
-                                        uri.password()
-                                            .map(|password| password.to_string()),
-                                        Some(method.clone()));
+    let da = AuthenticationRequest::new(
+        uri.as_str().to_string(),
+        uri.username().to_string(),
+        uri.password().map(|password| password.to_string()),
+        Some(method.clone()),
+    );
 
     let req_method = Method::from_str(&method).expect("Invalid method!");
 
-    let client = Client::new().unwrap();
-    let req = client.request(req_method, uri).headers(headers);
-    let req = match da.authenticate() {
-        Ok(Some(auth_headers)) => req.headers(auth_headers),
-        Ok(None) => req,
+    let client = Client::new();
+    let mut req_builder = client.request(req_method, uri);
+    match da.authenticate() {
+        Ok(Some(auth_headers)) => req_builder.headers(headers).headers(auth_headers),
+        Ok(None) => req_builder.headers(headers),
         Err(e) => panic!(e), // this is genuine error, authentication was not attempted
     };
-    let res = req.send().unwrap();
+    let res = req_builder.send().unwrap();
 
     if !res.status().is_success() {
         panic!("Didn't get a 2xx response. Status: {:?}", res.status());

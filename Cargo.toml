@@ -7,21 +7,21 @@ authors = ["Dave Allie <dave@daveallie.com>"]
 lto = true
 
 [dependencies]
-reqwest = "~0.4.0"
-url = "~1.4.0"
-rustc-serialize = "~0.3.0"
-rust-crypto = "~0.2.0"
+reqwest = "~0.8.0"
+url = "~1.7"
+base64 = "~0.9.2"
+md5 = "~0.3.8"
 bytes = "~0.4.0"
-lazy_static = "~0.2.0"
-pbr = { git = "https://github.com/a8m/pb.git", rev = "e6e1fe6e4aa4e99c4594aa4943a42e91cfb41f90" }
+lazy_static = "~1.1"
+pbr = { git = "https://github.com/a8m/pb.git", rev = "e0ab10be58c79d58dcdda9b79a82d28c54b3b4e3" }
 clippy = {version = "*", optional = true}
 
 [dependencies.clap]
-version = "~2.20"
+version = "~2.32"
 features = ["yaml"]
 
 [dependencies.uuid]
-version = "~0.4.0"
+version = "~0.6.5"
 features = ["v4"]
 
 [features]

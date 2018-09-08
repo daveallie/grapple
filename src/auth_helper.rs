@@ -1,8 +1,7 @@
-use crypto::digest::Digest;
-use crypto::md5::Md5;
-use reqwest::Client;
+use base64;
+use md5;
 use reqwest::header::Headers;
-use serialize::base64::{ToBase64, Standard, Config, Newline};
+use reqwest::Client;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use url::Url;
@@ -20,11 +19,12 @@ pub struct AuthenticationRequest {
 }
 
 impl AuthenticationRequest {
-    pub fn new(url: String,
-               username: String,
-               password: Option<String>,
-               method: Option<String>)
-               -> AuthenticationRequest {
+    pub fn new(
+        url: String,
+        username: String,
+        password: Option<String>,
+        method: Option<String>,
+    ) -> AuthenticationRequest {
         AuthenticationRequest {
             method: method,
             url: url,
@@ -58,7 +58,10 @@ impl AuthenticationRequest {
 
     fn authentication_type(&self, header: &String) -> Option<(String, String)> {
         header.find(" ").map(|slice_at| {
-            (header[0..slice_at].to_string(), header[slice_at + 1..header.len()].to_string())
+            (
+                header[0..slice_at].to_string(),
+                header[slice_at + 1..header.len()].to_string(),
+            )
         })
     }
 
@@ -68,15 +71,9 @@ impl AuthenticationRequest {
         if let Some(ref pass) = self.password {
             data.push_str(&pass[..]);
         }
-        let header = &data.as_bytes().to_base64(Config {
-            char_set: Standard,
-            newline: Newline::CRLF,
-            pad: true,
-            line_length: None,
-        });
+        let header = format!("Basic {}", base64::encode(&data));
         let mut headers = Headers::new();
-        headers.set_raw("Authorization",
-                        vec![format!("Basic {}", header[..].to_string()).into_bytes().to_vec()]);
+        headers.set_raw("Authorization", vec![header.into_bytes().to_vec()]);
         Ok(Some(headers))
     }
 
@@ -92,37 +89,33 @@ impl AuthenticationRequest {
 
         let password = self.password.clone().unwrap_or("".to_string());
         let method = self.method.clone().unwrap();
-        let realm = self.find_string_value(&collected, "realm".to_string())
+        let realm = self
+            .find_string_value(&collected, "realm".to_string())
             .unwrap_or("".to_string());
-        let nonce = self.find_string_value(&collected, "nonce".to_string())
+        let nonce = self
+            .find_string_value(&collected, "nonce".to_string())
             .unwrap_or("".to_string());
-        let qop = self.find_string_value(&collected, "qop".to_string()).unwrap_or("".to_string());
+        let qop = self
+            .find_string_value(&collected, "qop".to_string())
+            .unwrap_or("".to_string());
 
-        let mut nonces = NONCES.lock().expect("Failed to aquire NONCES lock, lock poisoned!");
+        let mut nonces = NONCES
+            .lock()
+            .expect("Failed to aquire NONCES lock, lock poisoned!");
         let nc = nonces.entry(nonce.clone()).or_insert(1);
 
-        let ha1 =
-            self.input_to_md5_str(format!("{}:{}:{}", self.username.clone(), realm, password));
-        let ha2 = self.input_to_md5_str(format!("{}:{}", method, uri));
-        let response =
-            self.input_to_md5_str(format!("{}:{}:{:0>8}:{}:{}:{}",
-                                          ha1,
-                                          nonce,
-                                          nc,
-                                          cnonce,
-                                          qop,
-                                          ha2));
-        let auth_header = format!("Digest username=\"{}\", realm=\"{}\", nonce=\"{}\", \
-                                   uri=\"{}\", qop={}, nc={:0>8}, cnonce=\"{}\", \
-                                   response=\"{}\"",
-                                  self.username,
-                                  realm,
-                                  nonce,
-                                  uri,
-                                  qop,
-                                  nc,
-                                  cnonce,
-                                  response);
+        let ha1 = md5::compute(format!("{}:{}:{}", self.username.clone(), realm, password));
+        let ha2 = md5::compute(format!("{}:{}", method, uri));
+        let response = md5::compute(format!(
+            "{:x}:{}:{:0>8}:{}:{}:{:x}",
+            ha1, nonce, nc, cnonce, qop, ha2
+        ));
+        let auth_header = format!(
+            "Digest username=\"{}\", realm=\"{}\", nonce=\"{}\", \
+             uri=\"{}\", qop={}, nc={:0>8}, cnonce=\"{}\", \
+             response=\"{:x}\"",
+            self.username, realm, nonce, uri, qop, nc, cnonce, response
+        );
 
         let mut headers = Headers::new();
         headers.set_raw("Authorization", vec![auth_header.into_bytes().to_vec()]);
@@ -136,15 +129,6 @@ impl AuthenticationRequest {
             Some(qs) => format!("{}?{}", path, qs),
             None => format!("{}", path),
         }
-    }
-
-    fn input_to_md5_str(&self, input: String) -> String {
-        let mut digest = Md5::new();
-        let input_bytes = input.into_bytes();
-        digest.input(&input_bytes);
-        let result_str = digest.result_str();
-        digest.reset();
-        result_str
     }
 
     fn find_string_value(&self, parts: &Vec<&str>, field: String) -> Option<String> {
@@ -163,14 +147,16 @@ impl AuthenticationRequest {
     }
 
     fn requires_authentication(&self) -> Result<Option<String>, &'static str> {
-        let client = Client::new().unwrap();
+        let client = Client::new();
         match client.head(&self.url).send() {
             Ok(ref mut res) => {
                 match res.headers().get_raw("WWW-Authenticate") {
                     Some(raw) => {
                         // debug!("WWW-Authenticate is: {}",
                         //    String::from_utf8(raw.get(0).unwrap().clone()).unwrap());
-                        Ok(Some(String::from_utf8(raw.get(0).unwrap().clone()).unwrap()))
+                        Ok(Some(
+                            String::from_utf8(raw.one().unwrap().to_vec()).unwrap(),
+                        ))
                     }
                     None => return Ok(None),
                 }
