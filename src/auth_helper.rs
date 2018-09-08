@@ -26,10 +26,10 @@ impl AuthenticationRequest {
         method: Option<String>,
     ) -> AuthenticationRequest {
         AuthenticationRequest {
-            method: method,
-            url: url,
-            username: username,
-            password: password,
+            method,
+            url,
+            username,
+            password,
         }
     }
 
@@ -43,7 +43,7 @@ impl AuthenticationRequest {
                     if auth_type == basic_auth {
                         self.do_basic_auth()
                     } else if auth_type == digest_auth {
-                        self.do_digest_auth(rest)
+                        self.do_digest_auth(&rest)
                     } else {
                         Err("Authentication type is not supported yet.")
                     }
@@ -56,8 +56,8 @@ impl AuthenticationRequest {
         }
     }
 
-    fn authentication_type(&self, header: &String) -> Option<(String, String)> {
-        header.find(" ").map(|slice_at| {
+    fn authentication_type(&self, header: &str) -> Option<(String, String)> {
+        header.find(' ').map(|slice_at| {
             (
                 header[0..slice_at].to_string(),
                 header[slice_at + 1..header.len()].to_string(),
@@ -77,27 +77,27 @@ impl AuthenticationRequest {
         Ok(Some(headers))
     }
 
-    fn do_digest_auth(&self, header_value: String) -> Result<Option<Headers>, &'static str> {
+    fn do_digest_auth(&self, header_value: &str) -> Result<Option<Headers>, &'static str> {
         if self.method.is_none() {
             return Err("Method required for digest authentication.");
         }
 
         let uri = self.get_request_path();
         let trimmed = header_value.trim().to_string();
-        let collected = trimmed.split(",").map(|s| s.trim()).collect();
+        let collected = trimmed.split(',').map(|s| s.trim()).collect();
         let cnonce = Uuid::new_v4().to_string();
 
-        let password = self.password.clone().unwrap_or("".to_string());
+        let password = self.password.clone().unwrap_or_else(|| "".to_string());
         let method = self.method.clone().unwrap();
         let realm = self
-            .find_string_value(&collected, "realm".to_string())
-            .unwrap_or("".to_string());
+            .find_string_value(&collected, "realm")
+            .unwrap_or_else(|| "".to_string());
         let nonce = self
-            .find_string_value(&collected, "nonce".to_string())
-            .unwrap_or("".to_string());
+            .find_string_value(&collected, "nonce")
+            .unwrap_or_else(|| "".to_string());
         let qop = self
-            .find_string_value(&collected, "qop".to_string())
-            .unwrap_or("".to_string());
+            .find_string_value(&collected, "qop")
+            .unwrap_or_else(|| "".to_string());
 
         let mut nonces = NONCES
             .lock()
@@ -127,23 +127,23 @@ impl AuthenticationRequest {
         let path = parsed_url.path();
         match parsed_url.query() {
             Some(qs) => format!("{}?{}", path, qs),
-            None => format!("{}", path),
+            None => path.to_string(),
         }
     }
 
-    fn find_string_value(&self, parts: &Vec<&str>, field: String) -> Option<String> {
+    fn find_string_value(&self, parts: &Vec<&str>, field: &str) -> Option<String> {
         for p in parts {
             if p.starts_with(&field) {
                 let formatted = format!("{}=", field);
-                return Some(self.unquote(p.replace(&formatted, "")));
+                return Some(self.unquote(&p.replace(&formatted, "")));
             }
         }
         None
     }
 
-    fn unquote(&self, input: String) -> String {
-        let mod1 = input.trim_left_matches("\"").to_string();
-        mod1.trim_right_matches("\"").to_string()
+    fn unquote(&self, input: &str) -> String {
+        let mod1 = input.trim_left_matches('\"').to_string();
+        mod1.trim_right_matches('\"').to_string()
     }
 
     fn requires_authentication(&self) -> Result<Option<String>, &'static str> {
@@ -158,7 +158,7 @@ impl AuthenticationRequest {
                             String::from_utf8(raw.one().unwrap().to_vec()).unwrap(),
                         ))
                     }
-                    None => return Ok(None),
+                    None => Ok(None),
                 }
             }
             Err(_) => {

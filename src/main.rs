@@ -25,20 +25,20 @@ mod file_helper;
 mod request_helper;
 mod ui_helper;
 
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use clap::App;
 use reqwest::header::{AcceptRanges, ContentLength, RangeUnit};
 use reqwest::Url;
 use std::ops::Deref;
 use std::path::Path;
-use std::sync::Mutex;
 use std::time::Duration;
 use std::{process, thread};
 
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 lazy_static! {
-    static ref CURRENTLY_RUNNING_THREADS: Mutex<usize> = Mutex::new(0);
-    static ref HAS_FAILED: Mutex<bool> = Mutex::new(false);
+    static ref CURRENTLY_RUNNING_THREADS: AtomicUsize = AtomicUsize::new(0);
+    static ref HAS_FAILED: AtomicBool = AtomicBool::new(false);
 }
 
 fn main() {
@@ -52,7 +52,7 @@ fn main() {
         Err(e) => panic!("Couldn't parse URI: {}", e),
     };
 
-    let file_name = request_helper::get_last_url_segment(url.clone());
+    let file_name = request_helper::get_last_url_segment(&url);
 
     if Path::new(&file_name).exists() {
         println!(
@@ -84,9 +84,10 @@ fn main() {
 
     let res = request_helper::head_request(url.clone());
     let headers = res.headers();
-    if !headers.get::<AcceptRanges>().map_or(false, |range_header| {
+    let has_range_header = headers.get::<AcceptRanges>().map_or(false, |range_header| {
         range_header.deref().contains(&RangeUnit::Bytes)
-    }) {
+    });
+    if !has_range_header {
         panic!("Requested resource does not allow Range requests!")
     }
 
@@ -110,21 +111,18 @@ fn main() {
     sections.push(((part_count_u64 - 1) * part_length, content_length - 1));
     lengths.push(content_length - (part_count_u64 - 1) * part_length);
 
-    ui_helper::start_pbr(file_name.clone(), lengths);
+    ui_helper::start_pbr(&file_name, lengths);
 
-    let footer_space = file_helper::create_file(file_name.clone(), content_length);
+    let footer_space = file_helper::create_file(&file_name, content_length);
     let mut children = vec![];
-    for child_id in 0..part_count {
-        let section = sections[child_id];
+    for (child_id, section) in sections.into_iter().enumerate() {
         let url_clone = url.clone();
         let file_name_clone = file_name.clone();
         loop {
             {
-                let mut currently_running = CURRENTLY_RUNNING_THREADS
-                    .lock()
-                    .expect("Failed to aquire CURRENTLY_RUNNING_THREADS lock, lock poisoned!");
-                if *currently_running < thread_count {
-                    *currently_running += 1;
+                let currently_running = CURRENTLY_RUNNING_THREADS.load(Ordering::AcqRel);
+                if currently_running < thread_count {
+                    CURRENTLY_RUNNING_THREADS.store(currently_running + 1, Ordering::AcqRel);
                     break;
                 }
             }
@@ -133,14 +131,14 @@ fn main() {
         let child = thread::spawn(move || {
             ui_helper::setting_up_bar(child_id);
             let start =
-                file_helper::get_first_empty_chunk(file_name_clone.clone(), footer_space, section);
+                file_helper::get_first_empty_chunk(&file_name_clone, footer_space, section);
             if start <= section.1 {
                 let prefilled = start - section.0;
                 let section = (start, section.1);
                 let range_req = request_helper::get_range_request(url_clone.clone(), section);
                 ui_helper::start_bar(child_id);
                 let written = file_helper::save_response(
-                    file_name_clone.clone(),
+                    &file_name_clone,
                     range_req,
                     footer_space,
                     child_id,
@@ -150,20 +148,14 @@ fn main() {
                     ui_helper::success_bar(child_id);
                 } else {
                     ui_helper::fail_bar(child_id);
-                    let mut failed = HAS_FAILED
-                        .lock()
-                        .expect("Failed to aquire HAS_FAILED lock, lock poisoned!");
-                    *failed = true;
+                    HAS_FAILED.store(true, Ordering::AcqRel);
                 }
             } else {
                 ui_helper::update_bar(child_id, section.1 - section.0 + 1);
                 ui_helper::success_bar(child_id);
             }
 
-            let mut currently_running = CURRENTLY_RUNNING_THREADS
-                .lock()
-                .expect("Failed to aquire CURRENTLY_RUNNING_THREADS lock, lock poisoned!");
-            *currently_running -= 1;
+            CURRENTLY_RUNNING_THREADS.store(CURRENTLY_RUNNING_THREADS.load(Ordering::AcqRel) - 1, Ordering::AcqRel);
         });
         children.push(child);
     }
@@ -171,14 +163,11 @@ fn main() {
         let _ = child.join();
     }
 
-    if *HAS_FAILED
-        .lock()
-        .expect("Failed to aquire HAS_FAILED lock, lock poisoned!")
-    {
+    if HAS_FAILED.load(Ordering::AcqRel) {
         println!("Some parts failed to download, please rerun.");
         process::exit(1);
     } else {
         ui_helper::success_global_bar();
-        file_helper::remove_footer_and_save(file_name, content_length);
+        file_helper::remove_footer_and_save(&file_name, content_length);
     }
 }

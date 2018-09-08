@@ -9,11 +9,11 @@ lazy_static! {
     static ref PBRS: Mutex<Vec<ProgressBar<Pipe>>> = Mutex::new(vec![]);
 }
 
-pub fn start_pbr(file_name: String, lengths: Vec<u64>) {
+pub fn start_pbr(file_name: &str, lengths: Vec<u64>) {
     let mut mb = MultiBar::new();
     mb.println(&format!("Downloading: {}", file_name));
 
-    let total_length = lengths.iter().fold(0, |a, &b| a + b);
+    let total_length = lengths.iter().sum();
     build_global_bar(&mut mb, total_length);
     mb.println("");
 
@@ -24,24 +24,24 @@ pub fn start_pbr(file_name: String, lengths: Vec<u64>) {
     thread::spawn(move || mb.listen());
 }
 
-pub fn setting_up_bar(bar: usize) {
+pub fn setting_up_bar(bar_idx: usize) {
     let mut pbrs = PBRS
         .lock()
         .expect("Failed to aquire PBRS lock, lock poisoned!");
-    pbrs[bar + 1].message("Starting... ");
-    pbrs[bar + 1].tick();
+    pbrs[bar_idx + 1].message("Starting... ");
+    pbrs[bar_idx + 1].tick();
 }
 
-pub fn start_bar(bar: usize) {
+pub fn start_bar(bar_idx: usize) {
     let mut pbrs = PBRS
         .lock()
         .expect("Failed to aquire PBRS lock, lock poisoned!");
-    pbrs[bar + 1].message("");
-    pbrs[bar + 1].show_message = false;
-    pbrs[bar + 1].tick();
+    pbrs[bar_idx + 1].message("");
+    pbrs[bar_idx + 1].show_message = false;
+    pbrs[bar_idx + 1].tick();
 }
 
-pub fn update_bar(bar: usize, progress: u64) {
+pub fn update_bar(bar_idx: usize, progress: u64) {
     let mut pbrs = PBRS
         .lock()
         .expect("Failed to aquire PBRS lock, lock poisoned!");
@@ -49,10 +49,10 @@ pub fn update_bar(bar: usize, progress: u64) {
         .lock()
         .expect("Failed to aquire TOTALS lock, lock poisoned!");
 
-    pbrs[bar + 1].set(progress);
-    totals[bar] = progress;
+    pbrs[bar_idx + 1].set(progress);
+    totals[bar_idx] = progress;
 
-    let total_progress = totals.iter().fold(0, |a, &b| a + b);
+    let total_progress = totals.iter().sum();
     pbrs[0].set(total_progress);
 }
 
@@ -60,12 +60,12 @@ pub fn success_global_bar() {
     finish_bar_with_message(0, "Download Complete!");
 }
 
-pub fn success_bar(bar: usize) {
-    finish_bar_with_message(bar + 1, "Download Complete!");
+pub fn success_bar(bar_idx: usize) {
+    finish_bar_with_message(bar_idx + 1, "Download Complete!");
 }
 
-pub fn fail_bar(bar: usize) {
-    finish_bar_with_message(bar + 1, "Download Failed!");
+pub fn fail_bar(bar_idx: usize) {
+    finish_bar_with_message(bar_idx + 1, "Download Failed!");
 }
 
 fn finish_bar_with_message(act_bar: usize, message: &str) {

@@ -14,7 +14,7 @@ lazy_static! {
 pub const CHUNK_SIZE_USIZE: usize = 128 * 1024;
 pub const CHUNK_SIZE_U64: u64 = 128 * 1024;
 
-pub fn create_file(path: String, bytes: u64) -> u64 {
+pub fn create_file(path: &str, bytes: u64) -> u64 {
     let (chunk_count, chunk_space) = calculate_chunk_count_and_space(bytes);
     let tmp_name = tmp_file_name(path);
 
@@ -40,8 +40,8 @@ pub fn create_file(path: String, bytes: u64) -> u64 {
     footer_space_u64
 }
 
-pub fn remove_footer_and_save(path: String, bytes: u64) {
-    let tmp_path = tmp_file_name(path.clone());
+pub fn remove_footer_and_save(path: &str, bytes: u64) {
+    let tmp_path = tmp_file_name(path);
     let file = OpenOptions::new()
         .write(true)
         .open(tmp_path.clone())
@@ -51,7 +51,7 @@ pub fn remove_footer_and_save(path: String, bytes: u64) {
 }
 
 pub fn save_response(
-    path: String,
+    path: &str,
     mut res: Response,
     footer_space: u64,
     child_id: usize,
@@ -65,7 +65,7 @@ pub fn save_response(
         _ => panic!("Response header of incorrect form!"),
     };
 
-    let file_name = tmp_file_name(path.clone());
+    let file_name = tmp_file_name(path);
     let mut file = OpenOptions::new()
         .write(true)
         .read(true)
@@ -85,17 +85,17 @@ pub fn save_response(
         written += len as u64;
         let current_working_chunk = (written + first_byte) / CHUNK_SIZE_U64;
         set_written_chunks(
-            path.clone(),
+            path,
             footer_space,
             (last_working_chunk, current_working_chunk),
         );
         ui_helper::update_bar(child_id, written + prefilled);
     }
 
-    return Ok(0u64);
+    Ok(0u64)
 }
 
-pub fn get_first_empty_chunk(path: String, footer_space: u64, byte_range: (u64, u64)) -> u64 {
+pub fn get_first_empty_chunk(path: &str, footer_space: u64, byte_range: (u64, u64)) -> u64 {
     let _guard = FLOCK.lock().expect("Failed to aquire lock, lock poisoned!");
     let mut file = OpenOptions::new()
         .read(true)
@@ -109,8 +109,8 @@ pub fn get_first_empty_chunk(path: String, footer_space: u64, byte_range: (u64, 
     file.seek(SeekFrom::End(first_byte)).unwrap();
     let mut buf = [0; 1];
     let mut chunk_num = first_chunk;
-    for byte_num in first_byte..(last_byte + 1) {
-        file.read(&mut buf).unwrap();
+    for byte_num in first_byte..=last_byte {
+        file.read_exact(&mut buf).unwrap();
 
         let start_offset = if byte_num == first_byte {
             first_chunk % 8
@@ -136,7 +136,7 @@ pub fn get_first_empty_chunk(path: String, footer_space: u64, byte_range: (u64, 
     chunk_num * CHUNK_SIZE_U64
 }
 
-fn set_written_chunks(path: String, footer_space: u64, working_chunk_from_to: (u64, u64)) {
+fn set_written_chunks(path: &str, footer_space: u64, working_chunk_from_to: (u64, u64)) {
     let (last_working_chunk, current_working_chunk) = working_chunk_from_to;
     if current_working_chunk <= last_working_chunk {
         return;
@@ -154,9 +154,9 @@ fn set_written_chunks(path: String, footer_space: u64, working_chunk_from_to: (u
     let first_byte = get_chunk_status_offset(footer_space as i64, last_working_chunk as i64);
     let last_byte = get_chunk_status_offset(footer_space as i64, current_complete_chunk as i64);
     let mut buf = [0; 1];
-    for byte_num in first_byte..(last_byte + 1) {
+    for byte_num in first_byte..=last_byte {
         file.seek(SeekFrom::End(byte_num)).unwrap();
-        file.read(&mut buf).unwrap();
+        file.read_exact(&mut buf).unwrap();
 
         let start_offset = if byte_num == first_byte {
             last_working_chunk % 8
@@ -173,11 +173,11 @@ fn set_written_chunks(path: String, footer_space: u64, working_chunk_from_to: (u
         let mut byte = buf[0];
 
         for bit_offset in start_offset..finish_offset {
-            byte = byte | (1 << (7 - bit_offset));
+            byte |= 1 << (7 - bit_offset);
         }
 
         file.seek(SeekFrom::End(byte_num)).unwrap();
-        file.write(&[byte]).unwrap();
+        file.write_all(&[byte]).unwrap();
     }
 }
 
@@ -185,7 +185,7 @@ fn get_chunk_status_offset(footer_space: i64, chunk: i64) -> i64 {
     -footer_space + (chunk / 8)
 }
 
-fn tmp_file_name(path: String) -> String {
+fn tmp_file_name(path: &str) -> String {
     format!("{}.grapplepartial", path)
 }
 
