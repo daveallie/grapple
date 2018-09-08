@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use ui_helper;
 
 lazy_static! {
-    static ref FLOCK: Mutex<u8> = Mutex::new(0u8);
+    static ref FLOCK: Mutex<()> = Mutex::new(());
 }
 
 pub const CHUNK_SIZE_USIZE: usize = 128 * 1024;
