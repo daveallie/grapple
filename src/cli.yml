@@ -35,3 +35,9 @@ args:
         long: password
         takes_value: true
         value_name: PASSWORD
+    - thread_bandwidth:
+        help: Per thread bankdwidth in kB/s
+        long: thread-bandwidth
+        takes_value: true
+        value_name: THREAD_BANDWIDTH
+

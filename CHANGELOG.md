@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - Support for Basic/Digest auth username and password to be set via CLI options
+- Per-thread bandwidth limit option
 
 ## [0.2.2] - 2017-04-08
 ### Added

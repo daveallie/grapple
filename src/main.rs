@@ -83,12 +83,17 @@ fn main() {
 
     let username = m
         .value_of("username")
-        .map(|tc| tc.parse::<String>().expect("Failed to parse username."));
+        .map(|u| u.parse::<String>().expect("Failed to parse username."));
     let password = m
         .value_of("password")
-        .map(|tc| tc.parse::<String>().expect("Failed to parse password."));
+        .map(|p| p.parse::<String>().expect("Failed to parse password."));
 
     request_helper::override_username_password(&mut url, username, password);
+
+    let thread_bandwidth = m.value_of("thread_bandwidth").map(|bw| {
+        bw.parse::<u32>()
+            .expect("Failed to parse thread bandwidth.")
+    });
 
     let url = url;
     let res = request_helper::head_request(url.clone());
@@ -151,6 +156,7 @@ fn main() {
                     footer_space,
                     child_id,
                     prefilled,
+                    thread_bandwidth,
                 ).unwrap();
                 if written > 0 {
                     ui_helper::success_bar(child_id);

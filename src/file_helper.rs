@@ -5,6 +5,8 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::mem::transmute;
 use std::ops::Deref;
 use std::sync::Mutex;
+use std::thread;
+use std::time::{Duration, Instant};
 use ui_helper;
 
 lazy_static! {
@@ -56,6 +58,7 @@ pub fn save_response(
     footer_space: u64,
     child_id: usize,
     prefilled: u64,
+    thread_bandwidth: Option<u32>,
 ) -> Result<u64, Error> {
     let first_byte = match *res.headers().get::<ContentRange>().unwrap().deref() {
         ContentRangeSpec::Bytes {
@@ -75,6 +78,8 @@ pub fn save_response(
     file.seek(SeekFrom::Start(first_byte)).unwrap();
     let mut buf = [0; CHUNK_SIZE_USIZE];
     let mut written = 0;
+    let mut old_now = Instant::now();
+    let bandwidth = thread_bandwidth.map(|bw| f64::from(bw) * 1024_f64);
 
     while let Ok(len) = res.read(&mut buf) {
         if len == 0 {
@@ -90,6 +95,21 @@ pub fn save_response(
             (last_working_chunk, current_working_chunk),
         );
         ui_helper::update_bar(child_id, written + prefilled);
+
+        if let Some(bw) = bandwidth {
+            let seconds_wait = len as f64 / bw;
+            let wait_time = Duration::new(
+                seconds_wait.trunc() as u64,
+                (seconds_wait * 1_000_000_000_f64) as u32,
+            );
+            let time_passed = Instant::now() - old_now;
+
+            if wait_time.gt(&time_passed) {
+                thread::sleep(wait_time - time_passed);
+            }
+
+            old_now = Instant::now();
+        }
     }
 
     Ok(0u64)
