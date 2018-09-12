@@ -101,7 +101,7 @@ impl AuthenticationRequest {
 
         let mut nonces = NONCES
             .lock()
-            .expect("Failed to aquire NONCES lock, lock poisoned!");
+            .expect("Failed to acquire NONCES lock, lock poisoned!");
         let nc = nonces.entry(nonce.clone()).or_insert(1);
 
         let ha1 = md5::compute(format!("{}:{}:{}", self.username.clone(), realm, password));

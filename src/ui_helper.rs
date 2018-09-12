@@ -27,7 +27,7 @@ pub fn start_pbr(file_name: &str, lengths: Vec<u64>) {
 pub fn setting_up_bar(bar_idx: usize) {
     let mut pbrs = PBRS
         .lock()
-        .expect("Failed to aquire PBRS lock, lock poisoned!");
+        .expect("Failed to acquire PBRS lock, lock poisoned!");
     pbrs[bar_idx + 1].message("Starting... ");
     pbrs[bar_idx + 1].tick();
 }
@@ -35,7 +35,7 @@ pub fn setting_up_bar(bar_idx: usize) {
 pub fn start_bar(bar_idx: usize) {
     let mut pbrs = PBRS
         .lock()
-        .expect("Failed to aquire PBRS lock, lock poisoned!");
+        .expect("Failed to acquire PBRS lock, lock poisoned!");
     pbrs[bar_idx + 1].message("");
     pbrs[bar_idx + 1].show_message = false;
     pbrs[bar_idx + 1].tick();
@@ -44,10 +44,10 @@ pub fn start_bar(bar_idx: usize) {
 pub fn update_bar(bar_idx: usize, progress: u64) {
     let mut pbrs = PBRS
         .lock()
-        .expect("Failed to aquire PBRS lock, lock poisoned!");
+        .expect("Failed to acquire PBRS lock, lock poisoned!");
     let mut totals = TOTALS
         .lock()
-        .expect("Failed to aquire TOTALS lock, lock poisoned!");
+        .expect("Failed to acquire TOTALS lock, lock poisoned!");
 
     pbrs[bar_idx + 1].set(progress);
     totals[bar_idx] = progress;
@@ -70,7 +70,7 @@ pub fn fail_bar(bar_idx: usize) {
 
 fn finish_bar_with_message(act_bar: usize, message: &str) {
     PBRS.lock()
-        .expect("Failed to aquire PBRS lock, lock poisoned!")[act_bar]
+        .expect("Failed to acquire PBRS lock, lock poisoned!")[act_bar]
         .finish_print(message);
 }
 
@@ -83,14 +83,14 @@ fn build_child_bar(mb: &mut MultiBar<Stdout>, size: u64) {
 
     let mut totals = TOTALS
         .lock()
-        .expect("Failed to aquire TOTALS lock, lock poisoned!");
+        .expect("Failed to acquire TOTALS lock, lock poisoned!");
     totals.push(0);
 }
 
 fn build_bar(mb: &mut MultiBar<Stdout>, size: u64, message: Option<String>) {
     let mut pbrs = PBRS
         .lock()
-        .expect("Failed to aquire PBRS lock, lock poisoned!");
+        .expect("Failed to acquire PBRS lock, lock poisoned!");
     let mut pb = mb.create_bar(size);
     pb.set_max_refresh_rate(Some(Duration::from_millis(200)));
     pb.tick_format("▏▎▍▌▋▊▉██▉▊▋▌▍▎▏");

@@ -41,7 +41,7 @@ OPTIONS:
             Set part count, defaults to the thread count. Cannot be less than the thread count.
 
     -P, --password <PASSWORD>                    Password to use in authentication. Overrides password if set in URI.
-        --thread-bandwidth <THREAD_BANDWIDTH>    Per thread bankdwidth in kB/s
+        --thread-bandwidth <THREAD_BANDWIDTH>    Per thread bandwidth in kB/s
     -t, --threads <THREADS>                      Set thread count, defaults to 10.
     -u, --username <USERNAME>                    Username to use in authentication. Overrides username in URI.
 
