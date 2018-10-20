@@ -2,6 +2,20 @@
 name = "grapple"
 version = "0.3.1"
 authors = ["Dave Allie <dave@daveallie.com>"]
+description = "Interruptible, download accelerator, with Basic and Digest Authentication support."
+documentation = "https://github.com/daveallie/grapple"
+homepage = "https://github.com/daveallie/grapple"
+repository = "https://github.com/daveallie/grapple"
+readme = "README.md"
+license = "MIT"
+keywords = ["download", "accelerator"]
+exclude = [
+    ".idea/*",
+    "docs/*",
+]
+
+[badges]
+travis-ci = { repository = "daveallie/grapple" }
 
 [profile.release]
 panic = "abort"
