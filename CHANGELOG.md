@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Fixed
 - Reduce high CPU usage when using `--thread-bandwidth`
+- [#5](https://github.com/daveallie/grapple/pull/5): Typo fixes ([@pzmarzly][])
 
 ## [0.3.0] - 2018-09-08
 ### Added
@@ -37,3 +38,5 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [0.2.2]: https://github.com/daveallie/bindrs/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/daveallie/bindrs/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/daveallie/bindrs/compare/v0.1.0...v0.2.0
+
+[@pzmarzly]: https://github.com/pzmarzly
