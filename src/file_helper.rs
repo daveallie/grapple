@@ -122,7 +122,9 @@ pub fn save_response(
 }
 
 pub fn get_first_empty_chunk(path: &str, footer_space: u64, byte_range: (u64, u64)) -> u64 {
-    let _guard = FLOCK.lock().expect("Failed to aquire lock, lock poisoned!");
+    let _guard = FLOCK
+        .lock()
+        .expect("Failed to acquire lock, lock poisoned!");
     let mut file = OpenOptions::new()
         .read(true)
         .open(tmp_file_name(path))
@@ -170,7 +172,9 @@ fn set_written_chunks(path: &str, footer_space: u64, working_chunk_from_to: (u64
 
     let current_complete_chunk = current_working_chunk - 1;
 
-    let _guard = FLOCK.lock().expect("Failed to aquire lock, lock poisoned!");
+    let _guard = FLOCK
+        .lock()
+        .expect("Failed to acquire lock, lock poisoned!");
     let mut file = OpenOptions::new()
         .write(true)
         .read(true)
