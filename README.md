@@ -1,6 +1,7 @@
 # Grapple
 
 [![Build Status](https://travis-ci.org/daveallie/grapple.svg?branch=master)](https://travis-ci.org/daveallie/grapple)
+[![Latest version](https://img.shields.io/crates/v/grapple.svg)](https://crates.io/crates/grapple)
 
 Interruptible, download accelerator, with Basic and Digest Authentication support, written in Rust.
 
@@ -14,7 +15,7 @@ Interruptible, download accelerator, with Basic and Digest Authentication suppor
 2. Run
 
 ```bash
-cargo install --git https://github.com/daveallie/grapple
+cargo install grapple
 ```
 
 ### Installing binary manually
