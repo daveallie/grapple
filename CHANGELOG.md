@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Changed
+- Use [indicatif](https://github.com/mitsuhiko/indicatif) for showing progress bars
 
 ## [0.3.1] - 2018-10-20
 ### Fixed

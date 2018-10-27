@@ -12,7 +12,7 @@
 extern crate clap;
 extern crate base64;
 extern crate md5;
-extern crate pbr;
+extern crate indicatif;
 extern crate reqwest;
 extern crate url;
 extern crate uuid;
@@ -27,16 +27,18 @@ mod ui_helper;
 use clap::App;
 use reqwest::header::{AcceptRanges, ContentLength, RangeUnit};
 use reqwest::Url;
+use std::collections::HashSet;
 use std::ops::Deref;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use std::time::Duration;
 use std::{process, thread};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 lazy_static! {
-    static ref CURRENTLY_RUNNING_THREADS: AtomicUsize = AtomicUsize::new(0);
+    static ref CURRENTLY_RUNNING_THREAD_IDS: Mutex<HashSet<usize>> = Mutex::new(HashSet::new());
     static ref HAS_FAILED: AtomicBool = AtomicBool::new(false);
 }
 
@@ -125,55 +127,64 @@ fn main() {
     sections.push(((part_count_u64 - 1) * part_length, content_length - 1));
     lengths.push(content_length - (part_count_u64 - 1) * part_length);
 
-    ui_helper::start_pbr(&file_name, lengths);
+    ui_helper::start_all_pb(&file_name, thread_count, lengths);
 
     let footer_space = file_helper::create_file(&file_name, content_length);
     let mut children = vec![];
     for (child_id, section) in sections.into_iter().enumerate() {
         let url_clone = url.clone();
         let file_name_clone = file_name.clone();
+        let mut thread_id = 0;
         loop {
             {
-                let currently_running = CURRENTLY_RUNNING_THREADS.load(Ordering::Acquire);
-                if currently_running < thread_count {
-                    CURRENTLY_RUNNING_THREADS.store(currently_running + 1, Ordering::Release);
+                let mut currently_running_ids = CURRENTLY_RUNNING_THREAD_IDS
+                    .lock()
+                    .expect("Failed to acquire lock, lock poisoned!");
+                if currently_running_ids.len() < thread_count {
+                    for t_id in 1..=thread_count {
+                        if !currently_running_ids.iter().any(|x| *x == t_id) {
+                            currently_running_ids.insert(t_id);
+                            thread_id = t_id;
+                            break;
+                        }
+                    }
                     break;
                 }
             }
             thread::sleep(Duration::new(1, 0));
         }
         let child = thread::spawn(move || {
-            ui_helper::setting_up_bar(child_id);
             let start = file_helper::get_first_empty_chunk(&file_name_clone, footer_space, section);
             if start <= section.1 {
+                ui_helper::setting_up_bar(thread_id, child_id, section.1 - section.0 + 1);
                 let prefilled = start - section.0;
                 let section = (start, section.1);
                 let range_req = request_helper::get_range_request(url_clone.clone(), section);
-                ui_helper::start_bar(child_id);
                 let written = file_helper::save_response(
                     &file_name_clone,
                     range_req,
                     footer_space,
                     child_id,
+                    thread_id,
                     prefilled,
                     thread_bandwidth,
                 )
                 .unwrap();
                 if written > 0 {
-                    ui_helper::success_bar(child_id);
+                    ui_helper::success_bar(thread_id);
                 } else {
-                    ui_helper::fail_bar(child_id);
+                    ui_helper::fail_bar(thread_id);
                     HAS_FAILED.store(true, Ordering::Release);
                 }
             } else {
-                ui_helper::update_bar(child_id, section.1 - section.0 + 1);
-                ui_helper::success_bar(child_id);
+                ui_helper::adjust_totals(child_id, section.1 - section.0 + 1);
             }
 
-            CURRENTLY_RUNNING_THREADS.store(
-                CURRENTLY_RUNNING_THREADS.load(Ordering::Acquire) - 1,
-                Ordering::Release,
-            );
+            let mut currently_running_ids = CURRENTLY_RUNNING_THREAD_IDS
+                .lock()
+                .expect("Failed to acquire lock, lock poisoned!");
+
+            currently_running_ids.remove(&thread_id);
         });
         children.push(child);
     }
@@ -185,7 +196,6 @@ fn main() {
         println!("Some parts failed to download, please rerun.");
         process::exit(1);
     } else {
-        ui_helper::success_global_bar();
         file_helper::remove_footer_and_save(&file_name, content_length);
     }
 }

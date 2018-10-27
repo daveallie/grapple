@@ -57,6 +57,7 @@ pub fn save_response(
     mut res: Response,
     footer_space: u64,
     child_id: usize,
+    thread_id: usize,
     prefilled: u64,
     thread_bandwidth: Option<u32>,
 ) -> Result<u64, Error> {
@@ -96,7 +97,7 @@ pub fn save_response(
             footer_space,
             (last_working_chunk, current_working_chunk),
         );
-        ui_helper::update_bar(child_id, written + prefilled);
+        ui_helper::update_bar(thread_id, child_id, written + prefilled);
 
         if let Some(bw) = bandwidth {
             bytes_since_bw_sync += len as f64;
