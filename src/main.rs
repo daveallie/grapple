@@ -157,7 +157,8 @@ fn main() {
                     child_id,
                     prefilled,
                     thread_bandwidth,
-                ).unwrap();
+                )
+                .unwrap();
                 if written > 0 {
                     ui_helper::success_bar(child_id);
                 } else {
