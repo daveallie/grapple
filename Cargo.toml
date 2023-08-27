@@ -24,7 +24,8 @@ codegen-units = 1
 incremental = false
 
 [dependencies]
-reqwest = "~0.8.0"
+regex = "1.9.3"
+reqwest = "~0.9.24"
 url = "~1.7"
 base64 = "~0.9.2"
 md5 = "~0.3.8"
