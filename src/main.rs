@@ -13,6 +13,7 @@ extern crate clap;
 extern crate base64;
 extern crate md5;
 extern crate pbr;
+extern crate regex;
 extern crate reqwest;
 extern crate url;
 extern crate uuid;
@@ -25,9 +26,8 @@ mod request_helper;
 mod ui_helper;
 
 use clap::App;
-use reqwest::header::{AcceptRanges, ContentLength, RangeUnit};
+use reqwest::header::ACCEPT_RANGES;
 use reqwest::Url;
-use std::ops::Deref;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::Duration;
@@ -98,16 +98,11 @@ fn main() {
     let url = url;
     let res = request_helper::head_request(url.clone());
     let headers = res.headers();
-    let has_range_header = headers.get::<AcceptRanges>().map_or(false, |range_header| {
-        range_header.deref().contains(&RangeUnit::Bytes)
-    });
-    if !has_range_header {
+    if !headers.contains_key(ACCEPT_RANGES) {
         panic!("Requested resource does not allow Range requests!")
     }
 
-    let content_length = headers
-        .get::<ContentLength>()
-        .map_or(0, |length_header| *length_header.deref());
+    let content_length = res.content_length().expect("Content too small");
 
     if content_length < 1024 {
         panic!("Content too small");

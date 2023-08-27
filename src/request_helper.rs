@@ -1,8 +1,19 @@
 use auth_helper::AuthenticationRequest;
-use reqwest::header::{ByteRangeSpec, Headers, Range};
+use reqwest::header::{HeaderMap, HeaderValue, RANGE};
 use reqwest::{Client, Method, Response, Url};
 use std::str::FromStr;
 use url::form_urlencoded;
+
+enum ByteRangeSpec {
+    FromTo(u64, u64),
+}
+
+impl ToString for ByteRangeSpec {
+    fn to_string(&self) -> String {
+        let ByteRangeSpec::FromTo(from, to) = self;
+        format!("bytes={}-{}", from, to)
+    }
+}
 
 pub fn head_request(uri: Url) -> Response {
     authed_request(uri, "HEAD")
@@ -10,16 +21,17 @@ pub fn head_request(uri: Url) -> Response {
 
 pub fn get_range_request(uri: Url, range: (u64, u64)) -> Response {
     let (from, to) = range;
-    let mut headers = Headers::new();
-    headers.set(Range::Bytes(vec![ByteRangeSpec::FromTo(from, to)]));
+    let range_spec = ByteRangeSpec::FromTo(from, to);
+    let mut headers = HeaderMap::new();
+    headers.insert(RANGE, HeaderValue::from_str(&range_spec.to_string()).unwrap());
     authed_request_with_headers(uri, "GET", headers)
 }
 
 pub fn authed_request(uri: Url, method: &str) -> Response {
-    authed_request_with_headers(uri, method, Headers::new())
+    authed_request_with_headers(uri, method, HeaderMap::new())
 }
 
-pub fn authed_request_with_headers(uri: Url, method: &str, headers: Headers) -> Response {
+pub fn authed_request_with_headers(uri: Url, method: &str, headers: HeaderMap) -> Response {
     let da = AuthenticationRequest::new(
         uri.as_str().to_string(),
         uri.username().to_string(),
@@ -31,10 +43,10 @@ pub fn authed_request_with_headers(uri: Url, method: &str, headers: Headers) -> 
 
     let client = Client::new();
     let mut req_builder = client.request(req_method, uri);
-    match da.authenticate() {
+    req_builder = match da.authenticate() {
         Ok(Some(auth_headers)) => req_builder.headers(headers).headers(auth_headers),
         Ok(None) => req_builder.headers(headers),
-        Err(e) => panic!(e), // this is genuine error, authentication was not attempted
+        Err(e) => panic!("{}", e), // this is genuine error, authentication was not attempted
     };
     let res = req_builder.send().unwrap();
 

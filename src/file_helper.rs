@@ -1,9 +1,9 @@
-use reqwest::header::{ContentRange, ContentRangeSpec};
+use reqwest::header::CONTENT_RANGE;
 use reqwest::{Error, Response};
+use regex::Regex;
 use std::fs::{self, rename, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::mem::transmute;
-use std::ops::Deref;
 use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -60,12 +60,13 @@ pub fn save_response(
     prefilled: u64,
     thread_bandwidth: Option<u32>,
 ) -> Result<u64, Error> {
-    let first_byte = match *res.headers().get::<ContentRange>().unwrap().deref() {
-        ContentRangeSpec::Bytes {
-            range,
-            instance_length: _,
-        } => range.unwrap().0,
-        _ => panic!("Response header of incorrect form!"),
+    let content_range: String = (*res.headers().get(CONTENT_RANGE).unwrap().to_str().unwrap()).to_string();
+    let range_regex = Regex::new(r"(?<unit>^[a-zA-Z][\w]*)\s+(?<rangeStart>\d+)\s?-\s?(?<rangeEnd>\d+)?\s?/\s?(?<size>\d+|\*)?").unwrap();
+    let first_byte = match range_regex.captures(&content_range) {
+        Some(matches) => {
+            matches["rangeStart"].parse::<u64>().unwrap()
+        },
+        None => panic!("Invalid Content-Range header in Response")
     };
 
     let file_name = tmp_file_name(path);

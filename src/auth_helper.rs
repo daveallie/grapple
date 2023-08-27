@@ -1,6 +1,6 @@
 use base64;
 use md5;
-use reqwest::header::Headers;
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, WWW_AUTHENTICATE};
 use reqwest::Client;
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -33,7 +33,7 @@ impl AuthenticationRequest {
         }
     }
 
-    pub fn authenticate(&self) -> Result<Option<Headers>, &'static str> {
+    pub fn authenticate(&self) -> Result<Option<HeaderMap>, &'static str> {
         let basic_auth = "Basic".to_string();
         let digest_auth = "Digest".to_string();
 
@@ -65,19 +65,19 @@ impl AuthenticationRequest {
         })
     }
 
-    fn do_basic_auth(&self) -> Result<Option<Headers>, &'static str> {
+    fn do_basic_auth(&self) -> Result<Option<HeaderMap>, &'static str> {
         let mut data = self.username.clone();
         data.push(':');
         if let Some(ref pass) = self.password {
             data.push_str(&pass[..]);
         }
         let header = format!("Basic {}", base64::encode(&data));
-        let mut headers = Headers::new();
-        headers.set_raw("Authorization", vec![header.into_bytes().to_vec()]);
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, HeaderValue::from_str(header.as_str()).unwrap());
         Ok(Some(headers))
     }
 
-    fn do_digest_auth(&self, header_value: &str) -> Result<Option<Headers>, &'static str> {
+    fn do_digest_auth(&self, header_value: &str) -> Result<Option<HeaderMap>, &'static str> {
         if self.method.is_none() {
             return Err("Method required for digest authentication.");
         }
@@ -117,8 +117,8 @@ impl AuthenticationRequest {
             self.username, realm, nonce, uri, qop, nc, cnonce, response
         );
 
-        let mut headers = Headers::new();
-        headers.set_raw("Authorization", vec![auth_header.into_bytes().to_vec()]);
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, HeaderValue::from_str(auth_header.as_str()).unwrap());
         Ok(Some(headers))
     }
 
@@ -142,20 +142,20 @@ impl AuthenticationRequest {
     }
 
     fn unquote(&self, input: &str) -> String {
-        let mod1 = input.trim_left_matches('\"').to_string();
-        mod1.trim_right_matches('\"').to_string()
+        let mod1 = input.trim_start_matches('\"').to_string();
+        mod1.trim_start_matches('\"').to_string()
     }
 
     fn requires_authentication(&self) -> Result<Option<String>, &'static str> {
         let client = Client::new();
         match client.head(&self.url).send() {
             Ok(ref mut res) => {
-                match res.headers().get_raw("WWW-Authenticate") {
+                match res.headers().get(WWW_AUTHENTICATE) {
                     Some(raw) => {
                         // debug!("WWW-Authenticate is: {}",
                         //    String::from_utf8(raw.get(0).unwrap().clone()).unwrap());
                         Ok(Some(
-                            String::from_utf8(raw.one().unwrap().to_vec()).unwrap(),
+                            raw.to_str().unwrap().to_string()
                         ))
                     }
                     None => Ok(None),
